@@ -1,5 +1,5 @@
 from PySide6.QtCore import QObject, Signal, Property, QAbstractListModel, Qt
-from models import SessionLocal, Item
+from models import Session, Item
 
 class ItemListModel(QAbstractListModel):
     def __init__(self, items=None):
@@ -31,7 +31,7 @@ class MainViewModel(QObject):
     items = Property(QObject, fget=get_items, notify=items_changed)
 
     def load_items(self):
-        db = SessionLocal()
+        db = Session()
         self._items.clear()
         # Query the database using SQLAlchemy
         db_items = db.query(Item).all()

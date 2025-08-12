@@ -1,4 +1,4 @@
-from .database import Base, engine, SessionLocal
+from .database import Base, engine, Session
 from .item_model import Item
 from .member_model import Member
 from .position_model import Position
