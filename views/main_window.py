@@ -12,6 +12,8 @@ from PySide6.QtWidgets import (
 
 from views.member_list_widget import MemberListWidget
 from viewmodels.member_list_viewmodel import MemberListViewModel
+from views.region_list_widget import RegionListWidget
+from viewmodels.region_list_viewmodel import RegionListViewModel
 
 
 class MainWindow(QMainWindow):
@@ -42,6 +44,13 @@ class MainWindow(QMainWindow):
         self.member_list_viewmodel.members_loaded.connect(self.member_list_widget.display_members)
         self.member_list_viewmodel.load_members()
         self.tab_widget.addTab(self.member_list_widget, "會員列表")
+
+        # Create Region List Tab
+        self.region_list_viewmodel = RegionListViewModel()
+        self.region_list_widget = RegionListWidget(self.region_list_viewmodel)
+        self.region_list_viewmodel.regions_loaded.connect(self.region_list_widget.display_regions)
+        self.region_list_viewmodel.load_regions()
+        self.tab_widget.addTab(self.region_list_widget, "地區管理")
 
         # Create a second placeholder tab
         self.placeholder_tab = QWidget()
