@@ -45,13 +45,6 @@ class MainWindow(QMainWindow):
         self.member_list_viewmodel.load_members()
         self.tab_widget.addTab(self.member_list_widget, "會員列表")
 
-        # Create Region List Tab
-        self.region_list_viewmodel = RegionListViewModel()
-        self.region_list_widget = RegionListWidget(self.region_list_viewmodel)
-        self.region_list_viewmodel.regions_loaded.connect(self.region_list_widget.display_regions)
-        self.region_list_viewmodel.load_regions()
-        self.tab_widget.addTab(self.region_list_widget, "地區管理")
-
         # Create a second placeholder tab
         self.placeholder_tab = QWidget()
         self.tab_widget.addTab(self.placeholder_tab, "分頁二")
@@ -84,12 +77,34 @@ class MainWindow(QMainWindow):
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
 
+        # Basic Data Menu
+        basic_data_menu = menu_bar.addMenu("基本資料")
+        region_management_action = QAction("地區管理", self)
+        region_management_action.triggered.connect(self._open_region_management_tab)
+        basic_data_menu.addAction(region_management_action)
+
         # Help Menu
         help_menu = menu_bar.addMenu("說明")
         about_action = QAction("關於", self)
         # You can connect this to a function that shows an about dialog
         # about_action.triggered.connect(self.show_about_dialog)
         help_menu.addAction(about_action)
+
+    def _open_region_management_tab(self):
+        # Check if the tab already exists
+        for i in range(self.tab_widget.count()):
+            if self.tab_widget.tabText(i) == "地區管理":
+                self.tab_widget.setCurrentIndex(i)
+                return
+
+        # Create Region List Tab if it doesn't exist
+        self.region_list_viewmodel = RegionListViewModel()
+        self.region_list_widget = RegionListWidget(self.region_list_viewmodel)
+        self.region_list_viewmodel.regions_loaded.connect(self.region_list_widget.display_regions)
+        self.region_list_viewmodel.load_regions()
+        self.tab_widget.addTab(self.region_list_widget, "地區管理")
+        self.tab_widget.setCurrentWidget(self.region_list_widget)
+
 
     def apply_stylesheet(self):
         self.setStyleSheet("""
