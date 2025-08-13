@@ -3,6 +3,7 @@ from models.member_model import Member
 from models.region_model import Region
 from models.database import Session
 from sqlalchemy import or_
+from sqlalchemy.orm import joinedload
 
 class MemberListViewModel(QObject):
     members_loaded = Signal(list)
@@ -28,7 +29,7 @@ class MemberListViewModel(QObject):
             if sort_order is not None:
                 self.current_sort_order = sort_order
 
-            query = session.query(Member)
+            query = session.query(Member).options(joinedload(Member.region))
 
             # Apply search filter
             if self.current_search_term:
