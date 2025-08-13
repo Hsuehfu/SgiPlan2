@@ -1,3 +1,5 @@
+from PySide6.QtCore import QSettings, Qt
+from PySide6.QtGui import QAction
 from PySide6.QtCore import QSettings
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
@@ -10,7 +12,7 @@ from PySide6.QtWidgets import (
 
 from views.member_list_widget import MemberListWidget
 from viewmodels.member_list_viewmodel import MemberListViewModel
-from views.region_list_widget import RegionListWidget
+from .region_list_widget import RegionListWidget
 from viewmodels.region_list_viewmodel import RegionListViewModel
 
 
@@ -39,9 +41,10 @@ class MainWindow(QMainWindow):
         # Create Member List Tab
         self.member_list_viewmodel = MemberListViewModel()
         self.member_list_widget = MemberListWidget(self.member_list_viewmodel)
-        self.member_list_viewmodel.members_loaded.connect(self.member_list_widget.display_items)
-        # self.member_list_viewmodel.load_members() # This is now called inside MemberListWidget's __init__
+        self.member_list_viewmodel.members_loaded.connect(self._handle_members_loaded, Qt.QueuedConnection)
         self.tab_widget.addTab(self.member_list_widget, "會員列表")
+        self.tab_widget.setCurrentWidget(self.member_list_widget)
+        self.member_list_widget._load_items() # Initial load of members after connection
 
         # Create a second placeholder tab
         self.placeholder_tab = QWidget() # Define the placeholder tab
@@ -55,6 +58,9 @@ class MainWindow(QMainWindow):
 
         # Create Status Bar
         self.statusBar().showMessage("準備就緒")
+
+    def _handle_members_loaded(self, members):
+        self.member_list_widget.display_items(members)
 
     def _load_settings(self):
         self.settings = QSettings("SgiPlan", "SgiPlan2")
@@ -98,10 +104,11 @@ class MainWindow(QMainWindow):
         # Create Region List Tab if it doesn't exist
         self.region_list_viewmodel = RegionListViewModel()
         self.region_list_widget = RegionListWidget(self.region_list_viewmodel)
-        self.region_list_viewmodel.regions_loaded.connect(self.region_list_widget.display_items)
-        # self.region_list_viewmodel.load_regions() # This is now called inside RegionListWidget's __init__
+        print(f"Connecting region signal: viewmodel valid={self.region_list_viewmodel is not None}, widget valid={self.region_list_widget is not None}")
+        self.region_list_viewmodel.regions_loaded.connect(self._handle_regions_loaded, Qt.QueuedConnection)
         self.tab_widget.addTab(self.region_list_widget, "地區管理")
         self.tab_widget.setCurrentWidget(self.region_list_widget)
+        self.region_list_widget._load_items() # Initial load of regions after connection
 
 
     def apply_stylesheet(self):
@@ -144,3 +151,8 @@ class MainWindow(QMainWindow):
                 border-radius: 4px;
             }
         """)
+
+    def _handle_regions_loaded(self, regions):
+        print("MainWindow: _handle_regions_loaded called.")
+        self.region_list_widget.display_items(regions)
+
