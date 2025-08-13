@@ -20,11 +20,16 @@ class BaseListWidget(QWidget):
 
         # Filter and Search Layout
         filter_layout = QHBoxLayout()
-        filter_layout.setSpacing(10)
+        filter_layout.setSpacing(20)
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText(self._get_search_placeholder())
         filter_layout.addWidget(QLabel("搜尋:"))
         filter_layout.addWidget(self.search_input)
+        
+        # Add clear button
+        style = self.style()
+        self.clear_search_button = QPushButton(QIcon.fromTheme("edit-clear", style.standardIcon(QStyle.SP_DialogCloseButton)), "清除")
+        filter_layout.addWidget(self.clear_search_button)
         
         # Add specific filter widgets if needed by subclasses
         self._add_specific_filters(filter_layout)
@@ -66,6 +71,7 @@ class BaseListWidget(QWidget):
         self.edit_button.clicked.connect(self.open_edit_dialog)
         self.delete_button.clicked.connect(self._delete_selected_item)
         self.search_input.textChanged.connect(self._filter_changed)
+        self.clear_search_button.clicked.connect(self._clear_search)
 
     # Abstract methods to be implemented by subclasses
     def _get_window_title(self):
@@ -148,3 +154,6 @@ class BaseListWidget(QWidget):
 
     def _load_items(self):
         raise NotImplementedError
+
+    def _clear_search(self):
+        self.search_input.clear()

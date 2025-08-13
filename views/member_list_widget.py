@@ -9,7 +9,6 @@ class MemberListWidget(BaseListWidget):
         super().__init__(viewmodel, parent)
         self.viewmodel.regions_loaded.connect(self.populate_region_filter)
         self.viewmodel.load_regions() # This is still needed to populate the filter
-        self._load_items() # Initial load of members
 
     def _get_window_title(self):
         return "會員管理"

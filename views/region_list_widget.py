@@ -7,7 +7,6 @@ from viewmodels.region_dialog_viewmodel import RegionDialogViewModel
 class RegionListWidget(BaseListWidget):
     def __init__(self, viewmodel, parent=None):
         super().__init__(viewmodel, parent)
-        self._load_items() # Initial load of regions
 
     def _get_window_title(self):
         return "地區管理"
