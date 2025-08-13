@@ -37,11 +37,11 @@ class RegionDialog(QDialog):
         self.save_button.clicked.connect(self.accept)
         self.cancel_button.clicked.connect(self.reject)
 
-    def get_region_data(self):
+    def _get_item_data(self):
         return {
             'name': self.name_input.text(),
         }
 
-    def set_region_data(self, region):
+    def _set_item_data(self, region):
         self.region_id = region.id
         self.name_input.setText(region.name)

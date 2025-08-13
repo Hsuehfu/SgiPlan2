@@ -1,7 +1,5 @@
 from PySide6.QtCore import QSettings
 from PySide6.QtGui import QAction
-from PySide6.QtCore import QSettings
-from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QMainWindow,
     QListView,
@@ -41,12 +39,12 @@ class MainWindow(QMainWindow):
         # Create Member List Tab
         self.member_list_viewmodel = MemberListViewModel()
         self.member_list_widget = MemberListWidget(self.member_list_viewmodel)
-        self.member_list_viewmodel.members_loaded.connect(self.member_list_widget.display_members)
-        self.member_list_viewmodel.load_members()
+        self.member_list_viewmodel.members_loaded.connect(self.member_list_widget.display_items)
+        # self.member_list_viewmodel.load_members() # This is now called inside MemberListWidget's __init__
         self.tab_widget.addTab(self.member_list_widget, "會員列表")
 
         # Create a second placeholder tab
-        self.placeholder_tab = QWidget()
+        self.placeholder_tab = QWidget() # Define the placeholder tab
         self.tab_widget.addTab(self.placeholder_tab, "分頁二")
 
         # Bind the view to the viewmodel
@@ -100,8 +98,8 @@ class MainWindow(QMainWindow):
         # Create Region List Tab if it doesn't exist
         self.region_list_viewmodel = RegionListViewModel()
         self.region_list_widget = RegionListWidget(self.region_list_viewmodel)
-        self.region_list_viewmodel.regions_loaded.connect(self.region_list_widget.display_regions)
-        self.region_list_viewmodel.load_regions()
+        self.region_list_viewmodel.regions_loaded.connect(self.region_list_widget.display_items)
+        # self.region_list_viewmodel.load_regions() # This is now called inside RegionListWidget's __init__
         self.tab_widget.addTab(self.region_list_widget, "地區管理")
         self.tab_widget.setCurrentWidget(self.region_list_widget)
 

@@ -6,7 +6,6 @@ class MemberDialog(QDialog):
         self.viewmodel = viewmodel
         self.setWindowTitle("新增會員")
         self.init_ui()
-        self.apply_stylesheet()
 
         self.viewmodel.regions_loaded.connect(self.populate_regions)
         self.viewmodel.load_regions()
@@ -37,40 +36,14 @@ class MemberDialog(QDialog):
         for region in regions:
             self.region_combo.addItem(region.name, region.id)
 
-    def get_member_data(self):
+    def _get_item_data(self):
         return {
             "name": self.name_input.text(),
             "region_id": self.region_combo.currentData()
         }
 
-    def set_member_data(self, member):
+    def _set_item_data(self, member):
         self.setWindowTitle("編輯會員")
         self.name_input.setText(member.name)
         if member.region:
             self.region_combo.setCurrentIndex(self.region_combo.findData(member.region.id))
-
-    def apply_stylesheet(self):
-        self.setStyleSheet("""
-            QDialog {
-                font-size: 14px;
-            }
-            QLineEdit, QComboBox {
-                padding: 5px;
-                border: 1px solid #cccccc;
-                border-radius: 4px;
-            }
-            QDialogButtonBox QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                text-align: center;
-                text-decoration: none;
-                font-size: 14px;
-                margin: 4px 2px;
-                border-radius: 4px;
-            }
-            QDialogButtonBox QPushButton:hover {
-                background-color: #45a049;
-            }
-        """)
