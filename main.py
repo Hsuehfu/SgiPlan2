@@ -2,15 +2,14 @@ import sys
 import logging
 from PySide6.QtWidgets import QApplication
 
-import logging_config;
+import logging_config
 from views.main_window import MainWindow
 from viewmodels.main_viewmodel import MainViewModel
-from models import database
 from models.database import Base, engine, Session
 from models.member_model import Member
 
 if __name__ == "__main__":    
-    logging_config.setup_logging();
+    logging_config.setup_logging()
     logger = logging.getLogger(__name__)
 
     # Initialize the database

@@ -59,7 +59,7 @@ def import_csv_data(conn, csv_file, table_name):
     try:
         with open(csv_file, 'r', encoding='utf-8') as file:
             csv_reader = csv.reader(file)
-            header = next(csv_reader, None) # 略過標頭行
+            next(csv_reader, None) # 略過標頭行
 
             # 根據資料表名稱決定插入語句
             if table_name == 'senior_members':

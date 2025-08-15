@@ -2,7 +2,6 @@ from PySide6.QtCore import QObject, Signal, Qt
 from models.member_model import Member
 from models.region_model import Region
 from models.database import Session
-from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 
 class MemberListViewModel(QObject):

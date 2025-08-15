@@ -2,7 +2,7 @@ import sys
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout
 )
-from PySide6.QtGui import QAction, QIcon  # QIcon 是用來加圖示的，可以先備著
+from PySide6.QtGui import QAction  # QIcon 是用來加圖示的，可以先備著
 from PySide6.QtCore import Qt
 
 class MainWindow(QMainWindow):

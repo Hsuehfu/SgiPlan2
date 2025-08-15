@@ -1,5 +1,4 @@
 from PySide6.QtWidgets import QTableWidgetItem, QLabel, QComboBox
-from PySide6.QtCore import Qt
 from views.base_list_widget import BaseListWidget
 from views.member_dialog import MemberDialog
 from viewmodels.member_dialog_viewmodel import MemberDialogViewModel

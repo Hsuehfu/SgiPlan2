@@ -1,5 +1,4 @@
 from PySide6.QtWidgets import QTableWidgetItem
-from PySide6.QtCore import Qt
 from views.base_list_widget import BaseListWidget
 from views.region_dialog import RegionDialog
 from viewmodels.region_dialog_viewmodel import RegionDialogViewModel

@@ -1,5 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QLabel, QPushButton, QHBoxLayout, QAbstractItemView, QLineEdit, QHeaderView, QStyle, QMessageBox, QComboBox
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QLabel, QPushButton, QHBoxLayout, QAbstractItemView, QLineEdit, QStyle, QMessageBox
 from PySide6.QtGui import QIcon
 
 class BaseListWidget(QWidget):

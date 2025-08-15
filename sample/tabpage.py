@@ -3,7 +3,6 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QTabWidget,
     QTableWidget, QTableWidgetItem, QLineEdit, QFormLayout
 )
-from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
 
 class MainWindow(QMainWindow):

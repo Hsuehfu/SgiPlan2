@@ -1,8 +1,6 @@
 import logging
 from PySide6.QtCore import QSettings, Qt
 from PySide6.QtGui import QAction
-from PySide6.QtCore import QSettings
-from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QMainWindow,
     QListView,
