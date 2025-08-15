@@ -47,11 +47,10 @@ SgiPlan2 是一個使用 Python 和 PySide6 開發的桌面應用程式。從檔
     ```
 
 2.  **安裝依賴套件:**
-    專案中沒有 `requirements.txt` 檔案。根據 `venv` 目錄，主要的依賴套件是 `PySide6` 和 `SQLAlchemy`。建議建立一個 `requirements.txt` 檔案以便管理。
+    使用 `requirements.txt` 檔案安裝所有必要的套件：
     ```shell
-    pip install PySide6 SQLAlchemy pandas openpyxl
+    pip install -r requirements.txt
     ```
-    *(註：`data_importer.py` 可能需要 `pandas` 和 `openpyxl` 來讀取 `.xlsx` 檔案。)*
 
 3.  **執行應用程式:**
     ```shell
@@ -61,7 +60,8 @@ SgiPlan2 是一個使用 Python 和 PySide6 開發的桌面應用程式。從檔
 ## 開發指南
 
 *   **程式碼風格:** 請遵循 PEP 8 Python 程式碼風格指南。
-*   **UI:** 在 `views` 目錄中使用 PySide6 建立和修改 UI 元C件。如果專案慣例是使用 `.ui` 檔案，請使用 Qt Designer (`designer.exe` 位於 `venv/Scripts`)，儘管目前目錄中沒有看到 `.ui` 檔案。
+*   **PySide6 版本注意事項:** PySide6 在 6.7 版後有重大變更。例如 `QAction` 已從 `QtWidgets` 模組移至 `QtGui` 模組。開發時請注意官方文件以確保使用正確的匯入路徑。
+*   **UI:** 在 `views` 目錄中使用 PySide6 建立和修改 UI 元件。如果專案慣例是使用 `.ui` 檔案，請使用 Qt Designer (`designer.exe` 位於 `venv/Scripts`)，儘管目前目錄中沒有看到 `.ui` 檔案。
 *   **資料庫:** 所有資料庫互動都應透過 `models` 目錄中定義的 SQLAlchemy 模型進行。若要變更資料庫結構，請相應地更新模型。
 *   **業務邏輯:** 在 `viewmodels` 中實現業務邏輯，以將其與 UI 分離。
 *   **依賴管理:** 將新的依賴套件新增到 `requirements.txt` 檔案中。
