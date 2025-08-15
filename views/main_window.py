@@ -1,3 +1,4 @@
+import logging
 from PySide6.QtCore import QSettings, Qt
 from PySide6.QtGui import QAction
 from PySide6.QtCore import QSettings
@@ -15,6 +16,7 @@ from viewmodels.member_list_viewmodel import MemberListViewModel
 from .region_list_widget import RegionListWidget
 from viewmodels.region_list_viewmodel import RegionListViewModel
 
+logger = logging.getLogger(__name__)
 
 class MainWindow(QMainWindow):
     def __init__(self, viewmodel):
@@ -104,7 +106,7 @@ class MainWindow(QMainWindow):
         # Create Region List Tab if it doesn't exist
         self.region_list_viewmodel = RegionListViewModel()
         self.region_list_widget = RegionListWidget(self.region_list_viewmodel)
-        print(f"Connecting region signal: viewmodel valid={self.region_list_viewmodel is not None}, widget valid={self.region_list_widget is not None}")
+        logger.info(f"Connecting region signal: viewmodel valid={self.region_list_viewmodel is not None}, widget valid={self.region_list_widget is not None}")
         self.region_list_viewmodel.regions_loaded.connect(self._handle_regions_loaded, Qt.QueuedConnection)
         self.tab_widget.addTab(self.region_list_widget, "地區管理")
         self.tab_widget.setCurrentWidget(self.region_list_widget)
@@ -153,6 +155,6 @@ class MainWindow(QMainWindow):
         """)
 
     def _handle_regions_loaded(self, regions):
-        print("MainWindow: _handle_regions_loaded called.")
+        logger.info("MainWindow: _handle_regions_loaded called.")
         self.region_list_widget.display_items(regions)
 
