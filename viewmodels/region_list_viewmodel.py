@@ -4,6 +4,7 @@ from models.database import Session
 
 class RegionListViewModel(QObject):
     regions_loaded = Signal(list)
+    error_occurred = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -27,16 +28,22 @@ class RegionListViewModel(QObject):
                 query = query.filter(Region.name.ilike(f"%{self.current_search_term}%"))
 
             if self.current_sort_column is not None:
-                if self.current_sort_column == 0: # Name column
+                sort_field = None
+                if self.current_sort_column == 0:  # ID 欄位
+                    sort_field = Region.id
+                elif self.current_sort_column == 1:  # 地區名稱欄位
+                    sort_field = Region.name
+
+                if sort_field is not None:
                     if self.current_sort_order == Qt.AscendingOrder:
-                        query = query.order_by(Region.name.asc())
+                        query = query.order_by(sort_field.asc())
                     else:
-                        query = query.order_by(Region.name.desc())
+                        query = query.order_by(sort_field.desc())
 
             regions = query.all()
             self.regions_loaded.emit(regions)
         except Exception as e:
-            print(f"Error loading regions: {e}")
+            self.error_occurred.emit(f"載入地區時發生錯誤: {e}")
         finally:
             session.close()
 
@@ -48,7 +55,7 @@ class RegionListViewModel(QObject):
             session.commit()
             self.load_regions(search_term=self.current_search_term, sort_column=self.current_sort_column, sort_order=self.current_sort_order)
         except Exception as e:
-            print(f"Error adding region: {e}")
+            self.error_occurred.emit(f"新增地區時發生錯誤: {e}")
             session.rollback()
         finally:
             session.close()
@@ -62,7 +69,7 @@ class RegionListViewModel(QObject):
                 session.commit()
                 self.load_regions(search_term=self.current_search_term, sort_column=self.current_sort_column, sort_order=self.current_sort_order)
         except Exception as e:
-            print(f"Error updating region: {e}")
+            self.error_occurred.emit(f"更新地區時發生錯誤: {e}")
             session.rollback()
         finally:
             session.close()
@@ -76,7 +83,7 @@ class RegionListViewModel(QObject):
                 session.commit()
                 self.load_regions(search_term=self.current_search_term, sort_column=self.current_sort_column, sort_order=self.current_sort_order)
         except Exception as e:
-            print(f"Error deleting region: {e}")
+            self.error_occurred.emit(f"刪除地區時發生錯誤: {e}")
             session.rollback()
         finally:
             session.close()

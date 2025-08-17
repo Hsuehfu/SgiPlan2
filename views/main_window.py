@@ -13,6 +13,8 @@ from views.member_list_widget import MemberListWidget
 from viewmodels.member_list_viewmodel import MemberListViewModel
 from .region_list_widget import RegionListWidget
 from viewmodels.region_list_viewmodel import RegionListViewModel
+from .position_list_widget import PositionListWidget
+from viewmodels.position_list_viewmodel import PositionListViewModel
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +89,10 @@ class MainWindow(QMainWindow):
         region_management_action.triggered.connect(self._open_region_management_tab)
         basic_data_menu.addAction(region_management_action)
 
+        position_management_action = QAction("職務管理", self)
+        position_management_action.triggered.connect(self._open_position_management_tab)
+        basic_data_menu.addAction(position_management_action)
+
         # Help Menu
         help_menu = menu_bar.addMenu("說明")
         about_action = QAction("關於", self)
@@ -109,6 +115,27 @@ class MainWindow(QMainWindow):
         self.tab_widget.addTab(self.region_list_widget, "地區管理")
         self.tab_widget.setCurrentWidget(self.region_list_widget)
         self.region_list_widget._load_items() # Initial load of regions after connection
+
+
+    def _open_position_management_tab(self):
+        # Check if the tab already exists
+        for i in range(self.tab_widget.count()):
+            if self.tab_widget.tabText(i) == "職務管理":
+                self.tab_widget.setCurrentIndex(i)
+                return
+
+        # Create Position List Tab if it doesn't exist
+        self.position_list_viewmodel = PositionListViewModel()
+        self.position_list_widget = PositionListWidget(self.position_list_viewmodel)
+        logger.info(f"Connecting position signal: viewmodel valid={self.position_list_viewmodel is not None}, widget valid={self.position_list_widget is not None}")
+        self.position_list_viewmodel.positions_loaded.connect(self._handle_positions_loaded, Qt.QueuedConnection)
+        self.tab_widget.addTab(self.position_list_widget, "職務管理")
+        self.tab_widget.setCurrentWidget(self.position_list_widget)
+        self.position_list_widget._load_items() # Initial load of positions after connection
+
+    def _handle_positions_loaded(self, positions):
+        logger.info("MainWindow: _handle_positions_loaded called.")
+        self.position_list_widget.display_items(positions)
 
 
     def apply_stylesheet(self):

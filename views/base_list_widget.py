@@ -123,8 +123,8 @@ class BaseListWidget(QWidget):
         dialog_viewmodel = self._get_dialog_viewmodel_class()()
         dialog = self._get_dialog_class()(dialog_viewmodel, self)
         if dialog.exec():
-            item_data = dialog._get_item_data() # Use a generic method name
-            self._perform_add(item_data)
+            # The dialog's viewmodel (e.g., PositionDialogViewModel) already handles saving to DB.
+            # We just need to reload the list after the dialog closes successfully.
             self._load_items() # Call generic load method
 
     def open_edit_dialog(self):
@@ -134,22 +134,14 @@ class BaseListWidget(QWidget):
             dialog_viewmodel = self._get_dialog_viewmodel_class()()
             dialog = self._get_dialog_class()(dialog_viewmodel, self)
             dialog._set_item_data(item_to_edit) # Use a generic method name
-            if dialog.exec():
-                item_data = dialog._get_item_data()
-                self._perform_update(item_to_edit.id, item_data)
+            if dialog.exec():                
                 self._load_items() # Call generic load method
 
     def _get_dialog_viewmodel_class(self):
         raise NotImplementedError
 
     def _get_dialog_class(self):
-        raise NotImplementedError
-
-    def _perform_add(self, item_data):
-        raise NotImplementedError
-
-    def _perform_update(self, item_id, item_data):
-        raise NotImplementedError
+        raise NotImplementedError    
 
     def _load_items(self):
         raise NotImplementedError

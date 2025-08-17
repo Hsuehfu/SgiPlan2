@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QTableWidgetItem
+from PySide6.QtWidgets import QTableWidgetItem, QMessageBox
 from views.base_list_widget import BaseListWidget
 from views.region_dialog import RegionDialog
 from viewmodels.region_dialog_viewmodel import RegionDialogViewModel
@@ -6,6 +6,7 @@ from viewmodels.region_dialog_viewmodel import RegionDialogViewModel
 class RegionListWidget(BaseListWidget):
     def __init__(self, viewmodel, parent=None):
         super().__init__(viewmodel, parent)
+        self.viewmodel.error_occurred.connect(self._show_error_message)
 
     def _get_window_title(self):
         return "地區管理"
@@ -14,7 +15,7 @@ class RegionListWidget(BaseListWidget):
         return "搜尋地區名稱..."
 
     def _get_table_headers(self):
-        return ["地區名稱"]
+        return ["ID", "地區名稱"]
 
     def _filter_changed(self):
         self._load_items()
@@ -30,7 +31,8 @@ class RegionListWidget(BaseListWidget):
             self._display_item_row(i, item)
 
     def _display_item_row(self, row, region):
-        self.table_widget.setItem(row, 0, QTableWidgetItem(region.name))
+        self.table_widget.setItem(row, 0, QTableWidgetItem(str(region.id)))
+        self.table_widget.setItem(row, 1, QTableWidgetItem(region.name))
 
     def _get_item_name(self, region):
         return region.name
@@ -55,3 +57,6 @@ class RegionListWidget(BaseListWidget):
     def _load_items(self):
         search_term = self.search_input.text()
         self.viewmodel.load_regions(search_term=search_term)
+
+    def _show_error_message(self, message):
+        QMessageBox.critical(self, "錯誤", message)
