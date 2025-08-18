@@ -50,7 +50,12 @@ class MemberListViewModel(QObject):
                         query = query.order_by(Member.phone_number.asc())
                     else:
                         query = query.order_by(Member.phone_number.desc())
-                elif self.current_sort_column == 2: # Region column
+                elif self.current_sort_column == 2: # Is Schedulable column
+                    if self.current_sort_order == Qt.AscendingOrder:
+                        query = query.order_by(Member.is_schedulable.asc())
+                    else:
+                        query = query.order_by(Member.is_schedulable.desc())
+                elif self.current_sort_column == 3: # Region column
                     # Need to join with Region table for sorting by region name
                     query = query.join(Region)
                     if self.current_sort_order == Qt.AscendingOrder:

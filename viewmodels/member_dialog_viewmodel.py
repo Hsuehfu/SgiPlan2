@@ -38,6 +38,7 @@ class MemberDialogViewModel(QObject):
             if member:
                 member.name = member_data['name']
                 member.phone_number = member_data['phone_number']
+                member.is_schedulable = member_data['is_schedulable']
                 member.region_id = member_data['region_id']
                 session.commit()
         except Exception as e:

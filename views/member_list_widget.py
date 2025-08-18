@@ -1,4 +1,5 @@
 from PySide6.QtWidgets import QTableWidgetItem, QLabel, QComboBox
+from PySide6.QtGui import QBrush, QColor
 from views.base_list_widget import BaseListWidget
 from views.member_dialog import MemberDialog
 from viewmodels.member_dialog_viewmodel import MemberDialogViewModel
@@ -16,7 +17,7 @@ class MemberListWidget(BaseListWidget):
         return "搜尋姓名..."
 
     def _get_table_headers(self):
-        return ["姓名", "電話", "地區"]
+        return ["姓名", "電話", "是否可排班", "地區"]
 
     def _add_specific_filters(self, layout):
         self.region_filter_combo = QComboBox()
@@ -45,7 +46,14 @@ class MemberListWidget(BaseListWidget):
     def _display_item_row(self, row, member):
         self.table_widget.setItem(row, 0, QTableWidgetItem(member.name))
         self.table_widget.setItem(row, 1, QTableWidgetItem(member.phone_number))
-        self.table_widget.setItem(row, 2, QTableWidgetItem(member.region.name if member.region else ""))
+        
+        is_schedulable_text = "是" if member.is_schedulable == 1 else "否"
+        is_schedulable_item = QTableWidgetItem(is_schedulable_text)
+        if member.is_schedulable == 0:
+            is_schedulable_item.setForeground(QBrush(QColor("red")))
+        self.table_widget.setItem(row, 2, is_schedulable_item)
+
+        self.table_widget.setItem(row, 3, QTableWidgetItem(member.region.name if member.region else ""))
 
     def _get_item_name(self, member):
         return member.name

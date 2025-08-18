@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QComboBox, QDialogButtonBox, QFormLayout
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QComboBox, QDialogButtonBox, QFormLayout, QCheckBox
 
 class MemberDialog(QDialog):
     def __init__(self, viewmodel, parent=None):
@@ -18,10 +18,12 @@ class MemberDialog(QDialog):
 
         self.name_input = QLineEdit()
         self.phone_number_input = QLineEdit()
+        self.is_schedulable_checkbox = QCheckBox("可排班")
         self.region_combo = QComboBox()
 
         self.form_layout.addRow("姓名:", self.name_input)
         self.form_layout.addRow("電話:", self.phone_number_input)
+        self.form_layout.addRow("是否可排班:", self.is_schedulable_checkbox)
         self.form_layout.addRow("地區:", self.region_combo)
 
         self.layout.addLayout(self.form_layout)
@@ -42,6 +44,7 @@ class MemberDialog(QDialog):
         return {
             "name": self.name_input.text(),
             "phone_number": self.phone_number_input.text(),
+            "is_schedulable": 1 if self.is_schedulable_checkbox.isChecked() else 0,
             "region_id": self.region_combo.currentData()
         }
 
@@ -49,5 +52,6 @@ class MemberDialog(QDialog):
         self.setWindowTitle("編輯會員")
         self.name_input.setText(member.name)
         self.phone_number_input.setText(member.phone_number)
+        self.is_schedulable_checkbox.setChecked(member.is_schedulable == 1)
         if member.region:
             self.region_combo.setCurrentIndex(self.region_combo.findData(member.region.id))
