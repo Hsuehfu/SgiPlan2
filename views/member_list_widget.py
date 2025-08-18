@@ -16,7 +16,7 @@ class MemberListWidget(BaseListWidget):
         return "搜尋姓名..."
 
     def _get_table_headers(self):
-        return ["姓名", "地區"]
+        return ["姓名", "電話", "地區"]
 
     def _add_specific_filters(self, layout):
         self.region_filter_combo = QComboBox()
@@ -44,7 +44,8 @@ class MemberListWidget(BaseListWidget):
 
     def _display_item_row(self, row, member):
         self.table_widget.setItem(row, 0, QTableWidgetItem(member.name))
-        self.table_widget.setItem(row, 1, QTableWidgetItem(member.region.name if member.region else ""))
+        self.table_widget.setItem(row, 1, QTableWidgetItem(member.phone_number))
+        self.table_widget.setItem(row, 2, QTableWidgetItem(member.region.name if member.region else ""))
 
     def _get_item_name(self, member):
         return member.name

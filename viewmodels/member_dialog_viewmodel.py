@@ -37,6 +37,7 @@ class MemberDialogViewModel(QObject):
             member = session.query(Member).filter_by(id=member_id).first()
             if member:
                 member.name = member_data['name']
+                member.phone_number = member_data['phone_number']
                 member.region_id = member_data['region_id']
                 session.commit()
         except Exception as e:

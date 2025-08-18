@@ -17,9 +17,11 @@ class MemberDialog(QDialog):
         self.form_layout = QFormLayout()
 
         self.name_input = QLineEdit()
+        self.phone_number_input = QLineEdit()
         self.region_combo = QComboBox()
 
         self.form_layout.addRow("姓名:", self.name_input)
+        self.form_layout.addRow("電話:", self.phone_number_input)
         self.form_layout.addRow("地區:", self.region_combo)
 
         self.layout.addLayout(self.form_layout)
@@ -36,14 +38,16 @@ class MemberDialog(QDialog):
         for region in regions:
             self.region_combo.addItem(region.name, region.id)
 
-    def _get_item_data(self):
+    def get_item_data(self):
         return {
             "name": self.name_input.text(),
+            "phone_number": self.phone_number_input.text(),
             "region_id": self.region_combo.currentData()
         }
 
-    def _set_item_data(self, member):
+    def set_item_data(self, member):
         self.setWindowTitle("編輯會員")
         self.name_input.setText(member.name)
+        self.phone_number_input.setText(member.phone_number)
         if member.region:
             self.region_combo.setCurrentIndex(self.region_combo.findData(member.region.id))
