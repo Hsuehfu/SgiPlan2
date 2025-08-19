@@ -67,13 +67,28 @@ class MemberListWidget(BaseListWidget):
     def _get_dialog_class(self):
         return MemberDialog
 
-    def _perform_add(self, member_data):
-        dialog_viewmodel = MemberDialogViewModel()
-        dialog_viewmodel.add_member(member_data)
+    def open_add_dialog(self):
+        """處理新增項目的操作。"""
+        # 使用共享的 session 建立 ViewModel
+        dialog_viewmodel = MemberDialogViewModel(db_session=self.viewmodel.session)
+        dialog_viewmodel.saved_successfully.connect(self._load_items) # 連接訊號
+        
+        dialog = MemberDialog(dialog_viewmodel, self)
+        dialog.load_initial_data()
+        dialog.exec() # 執行對話框，不需要檢查返回值，因為訊號會處理更新
 
-    def _perform_update(self, member_id, member_data):
-        dialog_viewmodel = MemberDialogViewModel()
-        dialog_viewmodel.update_member(member_id, member_data)
+    def open_edit_dialog(self):
+        """處理編輯項目的操作。"""
+        selected_row = self.table_widget.currentRow()
+        if selected_row >= 0:
+            member_to_edit = self.items[selected_row]
+            # 使用共享的 session 和要編輯的 member 建立 ViewModel
+            dialog_viewmodel = MemberDialogViewModel(db_session=self.viewmodel.session, member_data=member_to_edit)
+            dialog_viewmodel.saved_successfully.connect(self._load_items) # 連接訊號
+            
+            dialog = self._get_dialog_class()(dialog_viewmodel, self)
+            dialog.load_initial_data()
+            dialog.exec() # 執行對話框，不需要檢查返回值，因為訊號會處理更新
 
     def _load_items(self):
         search_term = self.search_input.text()

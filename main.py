@@ -20,31 +20,36 @@ if __name__ == "__main__":
     logging.info("Creating database tables if they don't exist.")
     Base.metadata.create_all(bind=engine)
 
-    # Add sample data if the database is empty
-    session = Session()
-    if session.query(Member).count() == 0:
-        logging.info("No members found, adding sample data.")
-        sample_members = [
-            Member(name="張三"),
-            Member(name="李四"),
-            Member(name="王五"),
-        ]
-        session.add_all(sample_members)
-        session.commit()
-    session.close()
+    # Create a single session for the application lifetime
+    db_session = Session()
 
-    app = QApplication(sys.argv)
+    try:
+        # Add sample data if the database is empty
+        if db_session.query(Member).count() == 0:
+            logging.info("No members found, adding sample data.")
+            sample_members = [
+                Member(name="張三"),
+                Member(name="李四"),
+                Member(name="王五"),
+            ]
+            db_session.add_all(sample_members)
+            db_session.commit()
 
-    # Create the ViewModel
-    logging.info("Initializing ViewModel.")
-    viewmodel = MainViewModel()
+        app = QApplication(sys.argv)
 
-    # Create the View and pass the ViewModel to it
-    logging.info("Initializing View.")
-    view = MainWindow(viewmodel)
-    view.show()
+        # Create the ViewModel and pass the shared session
+        logging.info("Initializing ViewModel.")
+        viewmodel = MainViewModel(db_session)
 
-    logging.info("Starting application event loop.")
-    exit_code = app.exec()
-    logging.info(f"Application finished with exit code {exit_code}.")
-    sys.exit(exit_code)
+        # Create the View and pass the ViewModel to it
+        logging.info("Initializing View.")
+        view = MainWindow(viewmodel)
+        view.show()
+
+        logging.info("Starting application event loop.")
+        exit_code = app.exec()
+        logging.info(f"Application finished with exit code {exit_code}.")
+        sys.exit(exit_code)
+    finally:
+        # Ensure the session is closed when the application exits
+        db_session.close()

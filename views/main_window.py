@@ -41,7 +41,7 @@ class MainWindow(QMainWindow):
         self.tab_widget.addTab(self.item_list_tab, "項目列表")
 
         # Create Member List Tab
-        self.member_list_viewmodel = MemberListViewModel()
+        self.member_list_viewmodel = MemberListViewModel(self.viewmodel.session) # Pass db_session
         self.member_list_widget = MemberListWidget(self.member_list_viewmodel)
         self.member_list_viewmodel.members_loaded.connect(self._handle_members_loaded, Qt.QueuedConnection)
         self.tab_widget.addTab(self.member_list_widget, "會員列表")
@@ -108,7 +108,7 @@ class MainWindow(QMainWindow):
                 return
 
         # Create Region List Tab if it doesn't exist
-        self.region_list_viewmodel = RegionListViewModel()
+        self.region_list_viewmodel = RegionListViewModel(self.viewmodel.session) # Pass db_session
         self.region_list_widget = RegionListWidget(self.region_list_viewmodel)
         logger.info(f"Connecting region signal: viewmodel valid={self.region_list_viewmodel is not None}, widget valid={self.region_list_widget is not None}")
         self.region_list_viewmodel.regions_loaded.connect(self._handle_regions_loaded, Qt.QueuedConnection)
@@ -125,7 +125,7 @@ class MainWindow(QMainWindow):
                 return
 
         # Create Position List Tab if it doesn't exist
-        self.position_list_viewmodel = PositionListViewModel()
+        self.position_list_viewmodel = PositionListViewModel(self.viewmodel.session) # Pass db_session
         self.position_list_widget = PositionListWidget(self.position_list_viewmodel)
         logger.info(f"Connecting position signal: viewmodel valid={self.position_list_viewmodel is not None}, widget valid={self.position_list_widget is not None}")
         self.position_list_viewmodel.positions_loaded.connect(self._handle_positions_loaded, Qt.QueuedConnection)

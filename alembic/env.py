@@ -7,9 +7,6 @@ from alembic import context
 
 # Import your Base and models here
 from models.database import Base
-from models.member_model import Member
-from models.region_model import Region
-from models.member_position_model import MemberPosition # Assuming this is also a model
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

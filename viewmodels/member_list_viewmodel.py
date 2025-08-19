@@ -1,22 +1,21 @@
 from PySide6.QtCore import QObject, Signal, Qt
 from models.member_model import Member
 from models.region_model import Region
-from models.database import Session
 from sqlalchemy.orm import joinedload
 
 class MemberListViewModel(QObject):
     members_loaded = Signal(list)
     regions_loaded = Signal(list)
 
-    def __init__(self, parent=None):
+    def __init__(self, db_session, parent=None):
         super().__init__(parent)
+        self.session = db_session
         self.current_search_term = None
         self.current_region_id = None
         self.current_sort_column = None
         self.current_sort_order = Qt.AscendingOrder
 
     def load_members(self, search_term=None, region_id=None, sort_column=None, sort_order=None):
-        session = Session()
         try:
             # Update current filter/sort parameters
             if search_term is not None:
@@ -28,7 +27,7 @@ class MemberListViewModel(QObject):
             if sort_order is not None:
                 self.current_sort_order = sort_order
 
-            query = session.query(Member).options(joinedload(Member.region))
+            query = self.session.query(Member).options(joinedload(Member.region))
 
             # Apply search filter
             if self.current_search_term:
@@ -67,32 +66,24 @@ class MemberListViewModel(QObject):
             self.members_loaded.emit(members)
         except Exception as e:
             print(f"Error loading members: {e}")
-        finally:
-            session.close()
 
     def load_regions(self):
-        session = Session()
         try:
-            regions = session.query(Region).all()
+            regions = self.session.query(Region).all()
             self.regions_loaded.emit(regions)
         except Exception as e:
             print(f"Error loading regions: {e}")
-        finally:
-            session.close()
 
     def delete_member(self, member_id):
-        session = Session()
         try:
-            member = session.query(Member).filter_by(id=member_id).first()
+            member = self.session.query(Member).filter_by(id=member_id).first()
             if member:
-                session.delete(member)
-                session.commit()
+                self.session.delete(member)
+                self.session.commit()
                 self.load_members(search_term=self.current_search_term, region_id=self.current_region_id, sort_column=self.current_sort_column, sort_order=self.current_sort_order)
         except Exception as e:
             print(f"Error deleting member: {e}")
-            session.rollback()
-        finally:
-            session.close()
+            self.session.rollback()
 
     def sort_members(self, column_index, order):
         self.load_members(sort_column=column_index, sort_order=order)
