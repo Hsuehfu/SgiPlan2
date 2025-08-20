@@ -46,14 +46,29 @@ class RegionListWidget(BaseListWidget):
     def _get_dialog_class(self):
         return RegionDialog
 
-    def _perform_add(self, region_data):
-        dialog_viewmodel = RegionDialogViewModel()
-        dialog_viewmodel.add_region(region_data)
+    # [新增] 覆寫 BaseListWidget 的方法，採用 PositionListWidget 的正確模式
+    def open_add_dialog(self):
+        """處理新增地區的操作。"""
+        dialog_viewmodel = RegionDialogViewModel(db_session=self.viewmodel.session)
+        dialog_viewmodel.region_saved.connect(self._load_items)
+        
+        dialog = RegionDialog(dialog_viewmodel, self)
+        dialog.exec()
 
-    def _perform_update(self, region_id, region_data):
-        dialog_viewmodel = RegionDialogViewModel()
-        dialog_viewmodel.update_region(region_id, region_data)
-
+    def open_edit_dialog(self):
+        """處理編輯地區的操作。"""
+        selected_row = self.table_widget.currentRow()
+        if selected_row >= 0:
+            region_to_edit = self.items[selected_row]
+            dialog_viewmodel = RegionDialogViewModel(
+                db_session=self.viewmodel.session, 
+                region_data=region_to_edit
+            )
+            dialog_viewmodel.region_saved.connect(self._load_items)
+            
+            dialog = RegionDialog(dialog_viewmodel, self)
+            dialog.exec()
+            
     def _load_items(self):
         search_term = self.search_input.text()
         self.viewmodel.load_regions(search_term=search_term)

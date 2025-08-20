@@ -38,10 +38,10 @@ class RegionDialog(QDialog):
         button_layout.addWidget(self.cancel_button)
         layout.addLayout(button_layout)
 
-        self.save_button.clicked.connect(self._save_region)
+        self.save_button.clicked.connect(self._on_accept_clicked)
         self.cancel_button.clicked.connect(self.reject)
 
-    def _save_region(self):
+    def _on_accept_clicked(self):
         # Update the viewmodel's state from the UI
         self.viewmodel.name = self.name_input.text().strip()
         # Tell the viewmodel to save
