@@ -6,6 +6,7 @@ from viewmodels.region_dialog_viewmodel import RegionDialogViewModel
 class RegionListWidget(BaseListWidget):
     def __init__(self, viewmodel, parent=None):
         super().__init__(viewmodel, parent)
+        self.viewmodel.regions_loaded.connect(self.display_items)
         self.viewmodel.error_occurred.connect(self._show_error_message)
 
     def _get_window_title(self):
@@ -75,29 +76,3 @@ class RegionListWidget(BaseListWidget):
 
     def _show_error_message(self, message):
         QMessageBox.critical(self, "錯誤", message)
-
-    def open_add_dialog(self):
-        """處理新增地區的操作。"""
-        # 傳入共享的 session
-        dialog_viewmodel = RegionDialogViewModel(db_session=self.viewmodel.session)
-        # 連接到 ViewModel 的成功訊號以重新整理列表
-        dialog_viewmodel.region_saved.connect(self._load_items)
-        
-        dialog = RegionDialog(dialog_viewmodel, self)
-        # dialog.load_initial_data() # 如果 RegionDialog 需要載入額外資料
-        dialog.exec()
-
-    def open_edit_dialog(self):
-        """處理編輯地區的操作。"""
-        selected_row = self.table_widget.currentRow()
-        if selected_row >= 0:
-            region_to_edit = self.items[selected_row]
-            dialog_viewmodel = RegionDialogViewModel(
-                db_session=self.viewmodel.session, 
-                region_data=region_to_edit
-            )
-            dialog_viewmodel.region_saved.connect(self._load_items)
-            
-            dialog = RegionDialog(dialog_viewmodel, self)
-            dialog.load_initial_data()
-            dialog.exec()

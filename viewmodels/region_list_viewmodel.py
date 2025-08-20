@@ -44,28 +44,6 @@ class RegionListViewModel(QObject):
         except Exception as e:
             self.error_occurred.emit(f"載入地區時發生錯誤: {e}")
         
-
-    def add_region(self, region_data):        
-        try:
-            new_region = Region(**region_data)
-            self.session.add(new_region)
-            self.session.commit()
-            self.load_regions(search_term=self.current_search_term, sort_column=self.current_sort_column, sort_order=self.current_sort_order)
-        except Exception as e:
-            self.error_occurred.emit(f"新增地區時發生錯誤: {e}")
-            self.session.rollback()       
-
-    def update_region(self, region_id, region_data):       
-        try:
-            region = self.session.query(Region).filter_by(id=region_id).first()
-            if region:
-                region.name = region_data['name']
-                self.session.commit()
-                self.load_regions(search_term=self.current_search_term, sort_column=self.current_sort_column, sort_order=self.current_sort_order)
-        except Exception as e:
-            self.error_occurred.emit(f"更新地區時發生錯誤: {e}")
-            self.session.rollback()        
-
     def delete_region(self, region_id):       
         try:
             region = self.session.query(Region).filter_by(id=region_id).first()
@@ -76,7 +54,7 @@ class RegionListViewModel(QObject):
         except Exception as e:
             self.error_occurred.emit(f"刪除地區時發生錯誤: {e}")
             self.session.rollback()
-       
+               
     def sort_regions(self, column_index, order):
         self.load_regions(sort_column=column_index, sort_order=order)
 

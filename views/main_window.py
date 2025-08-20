@@ -43,7 +43,6 @@ class MainWindow(QMainWindow):
         # Create Member List Tab
         self.member_list_viewmodel = MemberListViewModel(self.viewmodel.session) # Pass db_session
         self.member_list_widget = MemberListWidget(self.member_list_viewmodel)
-        self.member_list_viewmodel.members_loaded.connect(self._handle_members_loaded, Qt.QueuedConnection)
         self.tab_widget.addTab(self.member_list_widget, "會員列表")
         self.tab_widget.setCurrentWidget(self.member_list_widget)
         self.member_list_widget._load_items() # Initial load of members after connection
@@ -60,9 +59,6 @@ class MainWindow(QMainWindow):
 
         # Create Status Bar
         self.statusBar().showMessage("準備就緒")
-
-    def _handle_members_loaded(self, members):
-        self.member_list_widget.display_items(members)
 
     def _load_settings(self):
         self.settings = QSettings("SgiPlan", "SgiPlan2")
@@ -101,42 +97,54 @@ class MainWindow(QMainWindow):
         help_menu.addAction(about_action)
 
     def _open_region_management_tab(self):
-        # Check if the tab already exists
-        for i in range(self.tab_widget.count()):
-            if self.tab_widget.tabText(i) == "地區管理":
-                self.tab_widget.setCurrentIndex(i)
-                return
-
-        # Create Region List Tab if it doesn't exist
-        self.region_list_viewmodel = RegionListViewModel(self.viewmodel.session) # Pass db_session
-        self.region_list_widget = RegionListWidget(self.region_list_viewmodel)
-        logger.info(f"Connecting region signal: viewmodel valid={self.region_list_viewmodel is not None}, widget valid={self.region_list_widget is not None}")
-        self.region_list_viewmodel.regions_loaded.connect(self._handle_regions_loaded, Qt.QueuedConnection)
-        self.tab_widget.addTab(self.region_list_widget, "地區管理")
-        self.tab_widget.setCurrentWidget(self.region_list_widget)
-        self.region_list_widget._load_items() # Initial load of regions after connection
-
+        # [修改] 直接呼叫通用方法
+        self._open_management_tab(RegionListWidget, RegionListViewModel, "地區管理")
 
     def _open_position_management_tab(self):
-        # Check if the tab already exists
+        # [修改] 直接呼叫通用方法
+        self._open_management_tab(PositionListWidget, PositionListViewModel, "職務管理")
+        
+    # views/main_window.py
+
+    # [新增] 一個通用的方法來開啟管理分頁
+    def _open_management_tab(self, widget_class, viewmodel_class, tab_name):
+        """
+        一個通用的方法，用於開啟或切換到一個管理分頁。
+
+        Args:
+            widget_class: 要建立的 Widget 類別 (例如 MemberListWidget)。
+            viewmodel_class: 要建立的 ViewModel 類別 (例如 MemberListViewModel)。
+            tab_name: 分頁要顯示的名稱 (例如 "會員管理")。
+        """
+        # 檢查分頁是否已存在
         for i in range(self.tab_widget.count()):
-            if self.tab_widget.tabText(i) == "職務管理":
+            if self.tab_widget.tabText(i) == tab_name:
                 self.tab_widget.setCurrentIndex(i)
                 return
 
-        # Create Position List Tab if it doesn't exist
-        self.position_list_viewmodel = PositionListViewModel(self.viewmodel.session) # Pass db_session
-        self.position_list_widget = PositionListWidget(self.position_list_viewmodel)
-        logger.info(f"Connecting position signal: viewmodel valid={self.position_list_viewmodel is not None}, widget valid={self.position_list_widget is not None}")
-        self.position_list_viewmodel.positions_loaded.connect(self._handle_positions_loaded, Qt.QueuedConnection)
-        self.tab_widget.addTab(self.position_list_widget, "職務管理")
-        self.tab_widget.setCurrentWidget(self.position_list_widget)
-        self.position_list_widget._load_items() # Initial load of positions after connection
+        # 如果不存在，則建立新的分頁
+        # 將共享的 session 傳遞給新的 ViewModel
+        viewmodel = viewmodel_class(self.viewmodel.session)
+        widget = widget_class(viewmodel)
 
-    def _handle_positions_loaded(self, positions):
-        logger.info("MainWindow: _handle_positions_loaded called.")
-        self.position_list_widget.display_items(positions)
+        # 將 ViewModel 和 Widget 暫時儲存在 Widget 自己身上，方便管理
+        widget.setProperty("viewmodel", viewmodel)
 
+        # 連接訊號-槽來更新畫面
+        # 假設所有 ListViewModel 都有一個 <items>_loaded 訊號
+        if hasattr(viewmodel, "members_loaded"):
+            viewmodel.members_loaded.connect(widget.display_items, Qt.QueuedConnection)
+        elif hasattr(viewmodel, "regions_loaded"):
+            viewmodel.regions_loaded.connect(widget.display_items, Qt.QueuedConnection)
+        elif hasattr(viewmodel, "positions_loaded"):
+            viewmodel.positions_loaded.connect(widget.display_items, Qt.QueuedConnection)
+        
+        index = self.tab_widget.addTab(widget, tab_name)
+        self.tab_widget.setCurrentIndex(index)
+        
+        # 觸發初始資料載入
+        if hasattr(widget, "_load_items"):
+            widget._load_items()
 
     def apply_stylesheet(self):
         self.setStyleSheet("""
@@ -178,8 +186,3 @@ class MainWindow(QMainWindow):
                 border-radius: 4px;
             }
         """)
-
-    def _handle_regions_loaded(self, regions):
-        logger.info("MainWindow: _handle_regions_loaded called.")
-        self.region_list_widget.display_items(regions)
-
