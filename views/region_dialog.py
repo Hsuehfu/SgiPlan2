@@ -1,20 +1,22 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
-from PySide6.QtCore import Signal
 
 class RegionDialog(QDialog):
-    region_added = Signal()
-    region_updated = Signal()
 
     def __init__(self, viewmodel, parent=None):
         super().__init__(parent)
         self.viewmodel = viewmodel
-        self.region_id = None
         self.init_ui()
         self.viewmodel.error_occurred.connect(self._show_error_message) 
-        self.viewmodel.region_saved.connect(self.accept)       
+        self.viewmodel.region_saved.connect(self.accept)
+
+        # Populate fields if editing
+        if self.viewmodel.is_editing():
+            self.setWindowTitle("編輯地區")
+            self.name_input.setText(self.viewmodel.name)
+        else:
+            self.setWindowTitle("新增地區")
 
     def init_ui(self):
-        self.setWindowTitle("地區資料")
         self.setFixedSize(300, 150)
 
         layout = QVBoxLayout(self)
@@ -39,27 +41,14 @@ class RegionDialog(QDialog):
         self.save_button.clicked.connect(self._save_region)
         self.cancel_button.clicked.connect(self.reject)
 
-    def _get_item_data(self):
-        return {
-            'name': self.name_input.text(),
-        }
-
-    def _set_item_data(self, region):
-        self.region_id = region.id
-        self.name_input.setText(region.name)
-
     def _save_region(self):
-        name = self.name_input.text().strip()
-        if not name:
-            QMessageBox.warning(self, "輸入錯誤", "地區名稱不能為空。")
-            return
-
-        region_data = {'name': name}
-
-        if self.region_id:
-            self.viewmodel.update_region(self.region_id, region_data)
-        else:
-            self.viewmodel.add_region(region_data)
+        # Update the viewmodel's state from the UI
+        self.viewmodel.name = self.name_input.text().strip()
+        # Tell the viewmodel to save
+        self.viewmodel.save()
 
     def _show_error_message(self, message):
         QMessageBox.critical(self, "錯誤", message)    
+
+    def load_initial_data(self):
+        pass

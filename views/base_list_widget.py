@@ -120,21 +120,10 @@ class BaseListWidget(QWidget):
         raise NotImplementedError
 
     def open_add_dialog(self):
-        dialog_viewmodel = self._get_dialog_viewmodel_class()()
-        dialog = self._get_dialog_class()(dialog_viewmodel, self)
-        if dialog.exec():
-            member_data = dialog.get_item_data()
-            dialog_viewmodel.add_member(member_data)
-            self._load_items() # Call generic load method
+        raise NotImplementedError
 
     def open_edit_dialog(self):
-        selected_row = self.table_widget.currentRow()
-        if selected_row >= 0:
-            item_to_edit = self.items[selected_row]
-            dialog_viewmodel = self._get_dialog_viewmodel_class()(member_data=item_to_edit) # Pass item to viewmodel
-            dialog = self._get_dialog_class()(dialog_viewmodel, self)
-            if dialog.exec():
-                self._load_items() # Call generic load method
+        raise NotImplementedError
 
     def _get_dialog_viewmodel_class(self):
         raise NotImplementedError
