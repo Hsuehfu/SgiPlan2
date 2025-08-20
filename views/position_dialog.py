@@ -5,12 +5,19 @@ class PositionDialog(QDialog):
     def __init__(self, viewmodel: PositionDialogViewModel, parent=None):
         super().__init__(parent)
         self.viewmodel = viewmodel
-        self.setWindowTitle("職務編輯")
         self.init_ui()
         self.viewmodel.position_saved.connect(self.accept)
         self.viewmodel.error_occurred.connect(self._show_error_message)
 
+        if self.viewmodel.is_editing():
+            self.setWindowTitle("編輯職務")
+            self.name_input.setText(self.viewmodel.name)
+        else:
+            self.setWindowTitle("新增職務")
+
+
     def init_ui(self):
+        self.setFixedSize(300, 150)
         main_layout = QVBoxLayout(self)
 
         # Name input
@@ -33,19 +40,12 @@ class PositionDialog(QDialog):
         self.cancel_button.clicked.connect(self.reject)
 
     def _save_position(self):
-        name = self.name_input.text().strip()
-        if not name:
-            QMessageBox.warning(self, "輸入錯誤", "職務名稱不能為空。")
-            return
-        self.viewmodel.save_position(name)
-
-    def _set_item_data(self, position):
-        self.viewmodel.set_position(position)
-        self.name_input.setText(self.viewmodel.get_position_name())
-        self.setWindowTitle("編輯職務")
-
-    def _get_item_data(self):
-        return {'name': self.name_input.text().strip()}
+        self.viewmodel.name = self.name_input.text().strip()
+        self.viewmodel.save()
 
     def _show_error_message(self, message):
         QMessageBox.critical(self, "錯誤", message)
+   
+    def load_initial_data(self):
+        """A placeholder for consistency with other dialogs."""
+        pass

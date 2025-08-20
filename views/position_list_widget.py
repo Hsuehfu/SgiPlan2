@@ -1,17 +1,14 @@
 from PySide6.QtWidgets import QTableWidgetItem, QMessageBox
 from views.base_list_widget import BaseListWidget
-from views.position_dialog import PositionDialog # Will create this next
+from views.position_dialog import PositionDialog
+from viewmodels.position_dialog_viewmodel import PositionDialogViewModel
 from viewmodels.position_list_viewmodel import PositionListViewModel
-from viewmodels.position_dialog_viewmodel import PositionDialogViewModel # Will use this
 
 class PositionListWidget(BaseListWidget):
     def __init__(self, viewmodel: PositionListViewModel, parent=None):
         super().__init__(viewmodel, parent)
-        self.viewmodel = viewmodel
         self.viewmodel.positions_loaded.connect(self.display_items)
-        self.viewmodel.operation_successful.connect(self._load_items)
         self.viewmodel.error_occurred.connect(self._show_error_message)
-        self._load_items() # Initial load
 
     def _get_window_title(self):
         return "職務管理"
@@ -51,3 +48,25 @@ class PositionListWidget(BaseListWidget):
 
     def _show_error_message(self, message):
         QMessageBox.critical(self, "錯誤", message)
+
+    def open_add_dialog(self):
+        """處理新增職務的操作。"""
+        dialog_viewmodel = PositionDialogViewModel(db_session=self.viewmodel.session)
+        dialog_viewmodel.position_saved.connect(self._load_items)
+        
+        dialog = PositionDialog(dialog_viewmodel, self)
+        dialog.exec()
+
+    def open_edit_dialog(self):
+        """處理編輯職務的操作。"""
+        selected_row = self.table_widget.currentRow()
+        if selected_row >= 0:
+            position_to_edit = self.items[selected_row]
+            dialog_viewmodel = PositionDialogViewModel(
+                db_session=self.viewmodel.session, 
+                position_data=position_to_edit
+            )
+            dialog_viewmodel.position_saved.connect(self._load_items)
+            
+            dialog = PositionDialog(dialog_viewmodel, self)
+            dialog.exec()
