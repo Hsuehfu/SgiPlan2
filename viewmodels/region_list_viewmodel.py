@@ -1,5 +1,6 @@
 from PySide6.QtCore import QObject, Signal, Qt
 from models.region_model import Region
+from sqlalchemy.orm import joinedload
 
 class RegionListViewModel(QObject):
     regions_loaded = Signal(list)
@@ -46,11 +47,20 @@ class RegionListViewModel(QObject):
         
     def delete_region(self, region_id):       
         try:
-            region = self.session.query(Region).filter_by(id=region_id).first()
+            # 使用 joinedload 預先載入子地區，以便進行檢查
+            region = self.session.query(Region).options(joinedload(Region.children)).filter_by(id=region_id).first()
+            
             if region:
+                # [新增] 檢查是否有子地區
+                if region.children:
+                    self.error_occurred.emit(f"無法刪除地區 '{region.name}'，\n因为它底下還有子地區。")
+                    return
+
                 self.session.delete(region)
                 self.session.commit()
                 self.load_regions(search_term=self.current_search_term, sort_column=self.current_sort_column, sort_order=self.current_sort_order)
+            else:
+                self.error_occurred.emit("找不到要刪除的地區。")
         except Exception as e:
             self.error_occurred.emit(f"刪除地區時發生錯誤: {e}")
             self.session.rollback()

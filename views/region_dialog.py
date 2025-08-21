@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QComboBox
 
 class RegionDialog(QDialog):
 
@@ -8,6 +8,7 @@ class RegionDialog(QDialog):
         self.init_ui()
         self.viewmodel.error_occurred.connect(self._show_error_message) 
         self.viewmodel.region_saved.connect(self.accept)
+        self.viewmodel.parents_loaded.connect(self.populate_parents)
 
         # Populate fields if editing
         if self.viewmodel.is_editing():
@@ -16,9 +17,11 @@ class RegionDialog(QDialog):
         else:
             self.setWindowTitle("新增地區")
 
-    def init_ui(self):
-        self.setFixedSize(300, 150)
+        self.load_initial_data()
 
+    def init_ui(self):
+        # self.setFixedSize(300, 150)
+        self.setMinimumWidth(350)
         layout = QVBoxLayout(self)
 
         # Region Name
@@ -29,6 +32,14 @@ class RegionDialog(QDialog):
         name_layout.addWidget(self.name_input)
         layout.addLayout(name_layout)
 
+        # Parent Region
+        parent_layout = QHBoxLayout()
+        parent_label = QLabel("父級地區:")
+        self.parent_combo = QComboBox()
+        parent_layout.addWidget(parent_label)
+        parent_layout.addWidget(self.parent_combo)
+        layout.addLayout(parent_layout)
+
         # Buttons
         button_layout = QHBoxLayout()
         self.save_button = QPushButton("儲存")
@@ -38,17 +49,29 @@ class RegionDialog(QDialog):
         button_layout.addWidget(self.cancel_button)
         layout.addLayout(button_layout)
 
-        self.save_button.clicked.connect(self._on_accept_clicked)
+        self.save_button.clicked.connect(self._save_region)
         self.cancel_button.clicked.connect(self.reject)
 
-    def _on_accept_clicked(self):
+    def _save_region(self):
         # Update the viewmodel's state from the UI
         self.viewmodel.name = self.name_input.text().strip()
+        self.viewmodel.parent_id = self.parent_combo.currentData()
         # Tell the viewmodel to save
         self.viewmodel.save()
 
     def _show_error_message(self, message):
         QMessageBox.critical(self, "錯誤", message)    
 
+    def populate_parents(self, parents):
+        self.parent_combo.clear()
+        self.parent_combo.addItem("無 (設為頂層地區)", None)
+        for parent in parents:
+            self.parent_combo.addItem(parent.name, parent.id)
+        
+        if self.viewmodel.parent_id:
+            index = self.parent_combo.findData(self.viewmodel.parent_id)
+            if index != -1:
+                self.parent_combo.setCurrentIndex(index)
+
     def load_initial_data(self):
-        pass
+        self.viewmodel.load_possible_parents()

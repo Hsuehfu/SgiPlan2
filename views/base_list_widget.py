@@ -105,13 +105,20 @@ class BaseListWidget(QWidget):
         selected_row = self.table_widget.currentRow()
         if selected_row >= 0:
             item_to_delete = self.items[selected_row]
-            
-            reply = QMessageBox.question(self, '確認刪除', 
-                                           f'是否確定要刪除 "{self._get_item_name(item_to_delete)}"?',
+            confirmation_text = self._get_delete_confirmation_text(item_to_delete)
+            reply = QMessageBox.question(self, '確認刪除',
+                                           confirmation_text,
                                            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
             if reply == QMessageBox.Yes:
                 self._perform_delete(item_to_delete.id)
+
+    def _get_delete_confirmation_text(self, item) -> str:
+        """
+        取得刪除項目時的確認訊息文字。
+        子類別可以覆寫此方法以提供更具體的訊息。
+        """
+        return f'是否確定要刪除 "{self._get_item_name(item)}"?',
 
     def _get_item_name(self, item):
         raise NotImplementedError
