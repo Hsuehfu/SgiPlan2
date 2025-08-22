@@ -5,7 +5,7 @@ from models.position_model import Position
 logger = logging.getLogger(__name__)
 
 class PositionListViewModel(QObject):
-    positions_loaded = Signal(list)
+    items_loaded = Signal(list)
     error_occurred = Signal(str)
 
     def __init__(self, db_session, parent=None):
@@ -43,7 +43,7 @@ class PositionListViewModel(QObject):
                     query = query.order_by(sort_field.desc())
 
             positions = query.all()
-            self.positions_loaded.emit(positions)
+            self.items_loaded.emit(positions)
         except Exception as e:
             self.error_occurred.emit(f"載入職務時發生錯誤: {e}")
 

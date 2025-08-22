@@ -131,20 +131,18 @@ class MainWindow(QMainWindow):
         widget.setProperty("viewmodel", viewmodel)
 
         # 連接訊號-槽來更新畫面
-        # 假設所有 ListViewModel 都有一個 <items>_loaded 訊號
-        if hasattr(viewmodel, "members_loaded"):
-            viewmodel.members_loaded.connect(widget.display_items, Qt.QueuedConnection)
-        elif hasattr(viewmodel, "regions_loaded"):
-            viewmodel.regions_loaded.connect(widget.display_items, Qt.QueuedConnection)
-        elif hasattr(viewmodel, "positions_loaded"):
-            viewmodel.positions_loaded.connect(widget.display_items, Qt.QueuedConnection)
-        
-        index = self.tab_widget.addTab(widget, tab_name)
-        self.tab_widget.setCurrentIndex(index)
+        # 假設所有 ListViewModel 都有一個 items_loaded 訊號
+        if hasattr(viewmodel, "items_loaded"):
+            viewmodel.items_loaded.connect(widget.display_items, Qt.QueuedConnection)
+        else:
+            logger.warning(f"ViewModel {viewmodel_class.__name__} does not have an 'items_loaded' signal.")            
         
         # 觸發初始資料載入
         if hasattr(widget, "_load_items"):
             widget._load_items()
+
+        index = self.tab_widget.addTab(widget, tab_name)
+        self.tab_widget.setCurrentIndex(index)            
 
     def apply_stylesheet(self):
         self.setStyleSheet("""

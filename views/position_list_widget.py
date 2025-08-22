@@ -7,7 +7,7 @@ from viewmodels.position_list_viewmodel import PositionListViewModel
 class PositionListWidget(BaseListWidget):
     def __init__(self, viewmodel: PositionListViewModel, parent=None):
         super().__init__(viewmodel, parent)
-        self.viewmodel.positions_loaded.connect(self.display_items)
+        self.viewmodel.items_loaded.connect(self.display_items)
         self.viewmodel.error_occurred.connect(self._show_error_message)
 
     def _get_window_title(self):

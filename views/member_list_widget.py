@@ -7,7 +7,7 @@ from viewmodels.member_dialog_viewmodel import MemberDialogViewModel
 class MemberListWidget(BaseListWidget):
     def __init__(self, viewmodel, parent=None):
         super().__init__(viewmodel, parent)
-        self.viewmodel.members_loaded.connect(self.display_items)
+        self.viewmodel.items_loaded.connect(self.display_items)
         self.viewmodel.regions_loaded.connect(self.populate_region_filter)
         self.viewmodel.load_regions() # This is still needed to populate the filter
 

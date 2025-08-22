@@ -4,7 +4,7 @@ from models.region_model import Region
 from sqlalchemy.orm import joinedload
 
 class MemberListViewModel(QObject):
-    members_loaded = Signal(list)
+    items_loaded = Signal(list)
     regions_loaded = Signal(list)
 
     def __init__(self, db_session, parent=None):
@@ -63,7 +63,7 @@ class MemberListViewModel(QObject):
                         query = query.order_by(Region.name.desc())
 
             members = query.all()
-            self.members_loaded.emit(members)
+            self.items_loaded.emit(members)
         except Exception as e:
             print(f"Error loading members: {e}")
 

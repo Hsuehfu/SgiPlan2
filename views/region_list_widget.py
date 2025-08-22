@@ -11,7 +11,7 @@ class RegionListWidget(BaseManagementWidget):
         super().__init__(viewmodel, parent)
         self.init_ui()
 
-        self.viewmodel.regions_loaded.connect(self.display_items)
+        self.viewmodel.items_loaded.connect(self.display_items)
         self.viewmodel.error_occurred.connect(self._show_error_message)
 
     def init_ui(self):

@@ -3,7 +3,7 @@ from models.region_model import Region
 from sqlalchemy.orm import joinedload
 
 class RegionListViewModel(QObject):
-    regions_loaded = Signal(list)
+    items_loaded = Signal(list)
     error_occurred = Signal(str)
 
     def __init__(self, db_session, parent=None):
@@ -41,7 +41,7 @@ class RegionListViewModel(QObject):
                         query = query.order_by(sort_field.desc())
 
             regions = query.all()
-            self.regions_loaded.emit(regions)
+            self.items_loaded.emit(regions)
         except Exception as e:
             self.error_occurred.emit(f"載入地區時發生錯誤: {e}")
         
