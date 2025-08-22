@@ -54,7 +54,7 @@ venv.bak/
 *.csv
 *.tsv
 *.data
-*.db
+# *.db
 
 # OS generated files
 .DS_Store
