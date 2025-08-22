@@ -1,21 +1,15 @@
 # viewmodels/member_dialog_viewmodel.py
 
 from PySide6.QtCore import QObject, Signal
+from sqlalchemy.exc import IntegrityError
 from models.region_model import Region
 from models.member_model import Member
-# [移除] 不再需要從這裡匯入 Session，因為它將被傳入
-
-# viewmodels/member_dialog_viewmodel.py
-
-from PySide6.QtCore import QObject, Signal
-from models.region_model import Region
-from models.member_model import Member
-# [移除] 不再需要從這裡匯入 Session，因為它將被傳入
 
 class MemberDialogViewModel(QObject):
     regions_loaded = Signal(list)
     # [新增] 增加一個儲存成功後發射的訊號，通知主視窗更新
     saved_successfully = Signal()
+    save_failed = Signal(str)
 
     # [修改] __init__ 方法，接收 db_session
     def __init__(self, db_session, member_data=None, parent=None):
@@ -46,11 +40,11 @@ class MemberDialogViewModel(QObject):
 
     @property
     def phone_number(self):
-        return self._phone_number
+        return self._phone_number if self._phone_number is not None else ""
 
     @phone_number.setter
     def phone_number(self, value):
-        self._phone_number = value
+        self._phone_number = value if value else None
 
     @property
     def is_schedulable(self):
@@ -104,10 +98,16 @@ class MemberDialogViewModel(QObject):
             print("MemberDialogViewModel: Data saved successfully.")
             self.saved_successfully.emit() # [新增] 發射成功訊號
             
-        except Exception as e:
-            print(f"Error saving member data: {e}")
+        except IntegrityError as e:
             self.session.rollback()
-        # [修改] 不再需要 finally 和 session.close()，由外部統一管理
+            if "UNIQUE constraint failed: members.phone_number" in str(e):
+                self.save_failed.emit("電話號碼重複，請輸入不同的號碼。")
+            else:
+                self.save_failed.emit(f"儲存失敗，資料庫錯誤：\n{e}")
+        except Exception as e:
+            self.session.rollback()
+            print(f"Error saving member data: {e}")
+            self.save_failed.emit(f"發生未預期的錯誤：\n{e}")
 
     def is_editing(self) -> bool:
         """判斷當前是否為編輯模式。"""

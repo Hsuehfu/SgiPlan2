@@ -7,7 +7,7 @@ class Member(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
-    phone_number = Column(String, nullable=True)
+    phone_number = Column(String, unique=True, index=True, nullable=True)
     is_schedulable = Column(Integer, default=1, nullable=False)
     region_id = Column(Integer, ForeignKey('regions.id'))
 

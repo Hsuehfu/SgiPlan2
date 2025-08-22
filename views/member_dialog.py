@@ -3,7 +3,7 @@
 此對話框遵循 MVVM 架構，與 MemberDialogViewModel 互動，
 處理使用者輸入並顯示會員資料。
 """
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QComboBox, QDialogButtonBox, QFormLayout, QCheckBox
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QComboBox, QDialogButtonBox, QFormLayout, QCheckBox, QMessageBox
 from PySide6.QtCore import Qt
 
 from viewmodels.member_dialog_viewmodel import MemberDialogViewModel
@@ -17,7 +17,7 @@ class MemberDialog(QDialog):
         name_input (QLineEdit): 用於輸入會員姓名的文字方塊。
         phone_number_input (QLineEdit): 用於輸入會員電話的文字方塊。
         is_schedulable_checkbox (QCheckBox): 用於設定會員是否可排班的核取方塊。
-        region_combo (QComboBox): 用於選擇會員所屬地區的下拉式選單。
+        region_combo (QComboBox): 用于選擇會員所屬地區的下拉式選單。
         button_box (QDialogButtonBox): 包含確定和取消按鈕的按鈕盒。
     """
 
@@ -36,6 +36,8 @@ class MemberDialog(QDialog):
 
         # 連接 ViewModel 的訊號
         self.viewmodel.regions_loaded.connect(self.populate_regions)
+        self.viewmodel.saved_successfully.connect(self.accept)
+        self.viewmodel.save_failed.connect(self._on_save_failed)
 
         # 如果是編輯模式，從 ViewModel 載入資料
         if self.viewmodel.is_editing():  # <--- 呼叫公開方法，而不是存取私有屬性
@@ -97,7 +99,10 @@ class MemberDialog(QDialog):
         self.viewmodel.is_schedulable = self.is_schedulable_checkbox.isChecked()
         self.viewmodel.region_id = self.region_combo.currentData()
         self.viewmodel.save()
-        self.accept()
+
+    def _on_save_failed(self, message: str):
+        """顯示一個錯誤訊息對話框。"""
+        QMessageBox.warning(self, "儲存失敗", message)
 
     def populate_regions(self, regions: list[tuple[int, str]]):
         """當 ViewModel 載入地區後，填充下拉選單。"""
