@@ -35,6 +35,7 @@ class BaseManagementWidget(QWidget):
         
         style = self.style()
         self.clear_search_button = QPushButton(QIcon.fromTheme("edit-clear", style.standardIcon(QStyle.SP_DialogCloseButton)), "清除")
+        self.clear_search_button.setObjectName("clearSearchButton")
         filter_layout.addWidget(self.clear_search_button)
         
         # 允許子類別添加特定的過濾器
@@ -49,6 +50,7 @@ class BaseManagementWidget(QWidget):
         self.delete_button = QPushButton(QIcon.fromTheme("list-remove", style.standardIcon(QStyle.SP_FileIcon)), " 刪除")
         button_layout.addWidget(self.add_button)
         button_layout.addWidget(self.edit_button)
+        self.delete_button.setObjectName("deleteButton")
         button_layout.addWidget(self.delete_button)
         button_layout.addStretch()
 

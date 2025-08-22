@@ -183,4 +183,10 @@ class MainWindow(QMainWindow):
                 border: 1px solid #cccccc;
                 border-radius: 4px;
             }
+            #clearSearchButton {
+                background-color: #D9B300;
+            }
+            #deleteButton {
+                background-color: #dd6666;
+            }                              
         """)
