@@ -1,13 +1,16 @@
 import logging
 from PySide6.QtCore import QObject, Signal
+from sqlalchemy.exc import IntegrityError
 from models.region_model import Region
 
 logger = logging.getLogger(__name__)
 
+
 class RegionDialogViewModel(QObject):
-    error_occurred = Signal(str)
-    region_saved = Signal()
+    saved_successfully = Signal()
+    save_failed = Signal(str)
     parents_loaded = Signal(list)
+    load_failed = Signal(str) 
 
     def __init__(self, db_session, region_data: Region = None, parent=None):
         super().__init__(parent)
@@ -49,7 +52,7 @@ class RegionDialogViewModel(QObject):
         """Save the region data (either add new or update existing)."""
         try:
             if not self._name.strip():
-                self.error_occurred.emit("地區名稱不能為空。")
+                self.save_failed.emit("地區名稱不能為空。")
                 return
 
             if self.is_editing():
@@ -65,24 +68,48 @@ class RegionDialogViewModel(QObject):
 
             self.session.commit()
             logger.info("Region saved successfully.")
-            self.region_saved.emit()
+            self.saved_successfully.emit()
 
+        except IntegrityError as e:
+            self.session.rollback()
+            logger.warning(f"Integrity error on save: {e}")
+            self.save_failed.emit("儲存失敗，可能是地區名稱在同級目錄下已存在。")
         except Exception as e:
             self.session.rollback()
             logger.error(f"Error saving region: {e}")
-            self.error_occurred.emit(f"儲存地區時發生錯誤: {e}")
+            self.save_failed.emit(f"儲存地區時發生錯誤: {e}")
+
+    def _get_all_descendant_ids(self, region_id):
+        """遞迴獲取一個地區的所有後代ID。"""
+        descendant_ids = set()
+        children = (
+            self.session.query(Region.id).filter(Region.parent_id == region_id).all()
+        )
+
+        for (child_id,) in children:
+            if child_id not in descendant_ids:
+                descendant_ids.add(child_id)
+                descendant_ids.update(self._get_all_descendant_ids(child_id))
+        return descendant_ids
 
     def load_possible_parents(self):
         """載入所有可作為父級的地區列表。"""
         try:
             query = self.session.query(Region)
             if self.is_editing():
-                # 編輯模式下，不能將自己設為自己的父級
-                # 一個更完整的實作還應排除自己的所有子孫節點
-                query = query.filter(Region.id != self._id)
-            
+                # 建立一個禁止成為父級的ID列表
+                excluded_ids = {self._id}  # 排除自己
+                descendant_ids = self._get_all_descendant_ids(self._id)
+                excluded_ids.update(descendant_ids)
+
+                query = query.filter(Region.id.notin_(excluded_ids))
+
             parents = query.order_by(Region.name).all()
             self.parents_loaded.emit(parents)
         except Exception as e:
             logger.error(f"Error loading parent regions: {e}")
-            self.error_occurred.emit(f"載入父級地區時發生錯誤: {e}")
+            # 注意：這裡的錯誤處理也有問題，請見下一點
+            self.parents_loaded.emit([])  # 發送一個空列表，而不是錯誤字串
+            self.load_failed.emit(
+                f"載入父級地區時發生錯誤: {e}"
+            )  # 使用另一個信號來傳遞錯誤訊息

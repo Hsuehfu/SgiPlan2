@@ -120,7 +120,7 @@ class RegionListWidget(BaseManagementWidget):
     def open_add_dialog(self):
         """處理新增地區的操作。"""
         dialog_viewmodel = RegionDialogViewModel(db_session=self.viewmodel.session)
-        dialog_viewmodel.region_saved.connect(self._load_items)
+        dialog_viewmodel.saved_successfully.connect(self._load_items)
         dialog = RegionDialog(dialog_viewmodel, self)
         dialog.exec()
 
@@ -133,7 +133,7 @@ class RegionListWidget(BaseManagementWidget):
                 db_session=self.viewmodel.session, 
                 region_data=region_to_edit
             )
-            dialog_viewmodel.region_saved.connect(self._load_items)
+            dialog_viewmodel.saved_successfully.connect(self._load_items)
             dialog = RegionDialog(dialog_viewmodel, self)
             dialog.exec()
             

@@ -1,13 +1,14 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from .database import Base
 
 class Region(Base):
     __tablename__ = 'regions'
+    __table_args__ = (UniqueConstraint('parent_id', 'name', name='_parent_name_uc'),)
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(50), nullable=False, unique=True)
+    name = Column(String(50), nullable=False)
     parent_id = Column(Integer, ForeignKey('regions.id'), nullable=True)
 
     # --- 關係對應 ---

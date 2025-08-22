@@ -6,9 +6,10 @@ class RegionDialog(QDialog):
         super().__init__(parent)
         self.viewmodel = viewmodel
         self.init_ui()
-        self.viewmodel.error_occurred.connect(self._show_error_message) 
-        self.viewmodel.region_saved.connect(self.accept)
+        self.viewmodel.save_failed.connect(self._on_save_failed)
+        self.viewmodel.saved_successfully.connect(self.accept)
         self.viewmodel.parents_loaded.connect(self.populate_parents)
+        self.viewmodel.load_failed.connect(self._on_load_failed)
 
         # Populate fields if editing
         if self.viewmodel.is_editing():
@@ -59,7 +60,7 @@ class RegionDialog(QDialog):
         # Tell the viewmodel to save
         self.viewmodel.save()
 
-    def _show_error_message(self, message):
+    def _on_save_failed(self, message):
         QMessageBox.critical(self, "錯誤", message)    
 
     def populate_parents(self, parents):
@@ -75,3 +76,8 @@ class RegionDialog(QDialog):
 
     def load_initial_data(self):
         self.viewmodel.load_possible_parents()
+
+    def _on_load_failed(self, message):
+        QMessageBox.critical(self, "載入錯誤", message)
+        # 或許直接關閉對話框
+        # self.reject()
