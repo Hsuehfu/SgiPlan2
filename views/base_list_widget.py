@@ -1,39 +1,13 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QLabel, QPushButton, QHBoxLayout, QAbstractItemView, QLineEdit, QStyle, QMessageBox
-from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QTableWidget, QAbstractItemView, QMessageBox
+from .base_management_widget import BaseManagementWidget
 
-class BaseListWidget(QWidget):
+class BaseListWidget(BaseManagementWidget):
     def __init__(self, viewmodel, parent=None):
-        super().__init__(parent)
-        self.viewmodel = viewmodel
-        self.items = [] # This will hold the list of members or regions
+        super().__init__(viewmodel, parent)
         self.init_ui()
-
+ 
     def init_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setSpacing(10)
-        layout.setContentsMargins(10, 10, 10, 10)
-        self.setWindowTitle(self._get_window_title())
-
-        self.title_label = QLabel(self._get_window_title())
-        self.title_label.setObjectName("titleLabel")
-
-        # Filter and Search Layout
-        filter_layout = QHBoxLayout()
-        filter_layout.setSpacing(20)
-        self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText(self._get_search_placeholder())
-        filter_layout.addWidget(QLabel("搜尋:"))
-        filter_layout.addWidget(self.search_input)
-        
-        # Add clear button
-        style = self.style()
-        self.clear_search_button = QPushButton(QIcon.fromTheme("edit-clear", style.standardIcon(QStyle.SP_DialogCloseButton)), "清除")
-        filter_layout.addWidget(self.clear_search_button)
-        
-        # Add specific filter widgets if needed by subclasses
-        self._add_specific_filters(filter_layout)
-
-        filter_layout.addStretch()
+        super()._init_base_ui() # 初始化共通 UI
 
         self.table_widget = QTableWidget(self)
         self.table_widget.setColumnCount(len(self._get_table_headers()))
@@ -43,34 +17,16 @@ class BaseListWidget(QWidget):
         self.table_widget.horizontalHeader().setStretchLastSection(True)
         self.table_widget.horizontalHeader().setSortIndicatorShown(True)
         self.table_widget.horizontalHeader().setSectionsClickable(True)
-        self.table_widget.horizontalHeader().sectionClicked.connect(self._sort_items)
         self.table_widget.verticalHeader().setVisible(False)
         self.table_widget.setSelectionBehavior(QAbstractItemView.SelectRows)
-
-        # Buttons
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(10)
-        style = self.style()
-        self.add_button = QPushButton(QIcon.fromTheme("list-add", style.standardIcon(QStyle.SP_FileIcon)), " 新增")
-        self.edit_button = QPushButton(QIcon.fromTheme("document-edit", style.standardIcon(QStyle.SP_FileIcon)), " 編輯")
-        self.delete_button = QPushButton(QIcon.fromTheme("list-remove", style.standardIcon(QStyle.SP_FileIcon)), " 刪除")
-        button_layout.addWidget(self.add_button)
-        button_layout.addWidget(self.edit_button)
-        button_layout.addWidget(self.delete_button)
-        button_layout.addStretch()
-
-        layout.addWidget(self.title_label)
-        layout.addLayout(filter_layout)
-        layout.addLayout(button_layout)
-        layout.addWidget(self.table_widget)
-
-        self.setLayout(layout)
+        self.main_layout.addWidget(self.table_widget)
 
         self.add_button.clicked.connect(self.open_add_dialog)
         self.edit_button.clicked.connect(self.open_edit_dialog)
         self.delete_button.clicked.connect(self._delete_selected_item)
         self.search_input.textChanged.connect(self._filter_changed)
         self.clear_search_button.clicked.connect(self._clear_search)
+        self.table_widget.horizontalHeader().sectionClicked.connect(self._sort_items)
 
     # Abstract methods to be implemented by subclasses
     def _get_window_title(self):
@@ -81,10 +37,6 @@ class BaseListWidget(QWidget):
 
     def _get_table_headers(self):
         raise NotImplementedError
-
-    def _add_specific_filters(self, layout):
-        # Optional: Subclasses can override this to add more filter widgets
-        pass
 
     def _filter_changed(self):
         raise NotImplementedError
@@ -118,7 +70,7 @@ class BaseListWidget(QWidget):
         取得刪除項目時的確認訊息文字。
         子類別可以覆寫此方法以提供更具體的訊息。
         """
-        return f'是否確定要刪除 "{self._get_item_name(item)}"?',
+        return f'是否確定要刪除 "{self._get_item_name(item)}"?'
 
     def _get_item_name(self, item):
         raise NotImplementedError
@@ -138,8 +90,4 @@ class BaseListWidget(QWidget):
     def _get_dialog_class(self):
         raise NotImplementedError    
 
-    def _load_items(self):
-        raise NotImplementedError
-
-    def _clear_search(self):
-        self.search_input.clear()
+    def _load_items(self): raise NotImplementedError

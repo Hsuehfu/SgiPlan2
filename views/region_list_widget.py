@@ -1,18 +1,14 @@
 from PySide6.QtWidgets import (
-    QMessageBox, QTreeWidget, QTreeWidgetItem, QWidget, QVBoxLayout, 
-    QLabel, QHBoxLayout, QLineEdit, QPushButton, QStyle, QHeaderView
+    QMessageBox, QTreeWidget, QTreeWidgetItem, QHeaderView
 )
-from PySide6.QtGui import QIcon
 from PySide6.QtCore import Qt
-from views.base_list_widget import BaseListWidget
+from .base_management_widget import BaseManagementWidget
 from views.region_dialog import RegionDialog
 from viewmodels.region_dialog_viewmodel import RegionDialogViewModel
 
-class RegionListWidget(QWidget):
+class RegionListWidget(BaseManagementWidget):
     def __init__(self, viewmodel, parent=None):
-        super().__init__(parent)
-        self.viewmodel = viewmodel
-        self.items = []
+        super().__init__(viewmodel, parent)
         self.init_ui()
 
         self.viewmodel.regions_loaded.connect(self.display_items)
@@ -20,51 +16,17 @@ class RegionListWidget(QWidget):
 
     def init_ui(self):
         """建立樹狀檢視的 UI 介面。"""
-        layout = QVBoxLayout(self)
-        layout.setSpacing(10)
-        layout.setContentsMargins(10, 10, 10, 10)
-        self.setWindowTitle(self._get_window_title())
-
-        self.title_label = QLabel(self._get_window_title())
-        self.title_label.setObjectName("titleLabel")
-
-        # 搜尋與過濾
-        filter_layout = QHBoxLayout()
-        filter_layout.setSpacing(20)
-        self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText(self._get_search_placeholder())
-        filter_layout.addWidget(QLabel("搜尋:"))
-        filter_layout.addWidget(self.search_input)
-        
-        style = self.style()
-        self.clear_search_button = QPushButton(QIcon.fromTheme("edit-clear", style.standardIcon(QStyle.SP_DialogCloseButton)), "清除")
-        filter_layout.addWidget(self.clear_search_button)
-        filter_layout.addStretch()
-
-        # 按鈕
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(10)
-        self.add_button = QPushButton(QIcon.fromTheme("list-add", style.standardIcon(QStyle.SP_FileIcon)), " 新增")
-        self.edit_button = QPushButton(QIcon.fromTheme("document-edit", style.standardIcon(QStyle.SP_FileIcon)), " 編輯")
-        self.delete_button = QPushButton(QIcon.fromTheme("list-remove", style.standardIcon(QStyle.SP_FileIcon)), " 刪除")
-        button_layout.addWidget(self.add_button)
-        button_layout.addWidget(self.edit_button)
-        button_layout.addWidget(self.delete_button)
-        button_layout.addStretch()
+        super()._init_base_ui() # 初始化共通 UI
 
         # 樹狀檢視
         self.tree_widget = QTreeWidget(self)
         self.tree_widget.setColumnCount(len(self._get_table_headers()))
         self.tree_widget.setHeaderLabels(self._get_table_headers())
-        self.tree_widget.header().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.tree_widget.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.tree_widget.setAlternatingRowColors(True)
         self.tree_widget.setSelectionBehavior(QTreeWidget.SelectRows)
 
-        layout.addWidget(self.title_label)
-        layout.addLayout(filter_layout)
-        layout.addLayout(button_layout)
-        layout.addWidget(self.tree_widget)
-        self.setLayout(layout)
+        self.main_layout.addWidget(self.tree_widget)
 
         # 連接訊號
         self.add_button.clicked.connect(self.open_add_dialog)
@@ -81,9 +43,6 @@ class RegionListWidget(QWidget):
 
     def _get_table_headers(self):
         return ["地區名稱", "ID"]
-
-    def _add_specific_filters(self, layout):
-        pass
 
     def _filter_changed(self):
         """在客戶端過濾樹狀檢視。"""
@@ -185,6 +144,3 @@ class RegionListWidget(QWidget):
 
     def _show_error_message(self, message):
         QMessageBox.critical(self, "錯誤", message)
-
-    def _clear_search(self):
-        self.search_input.clear()
