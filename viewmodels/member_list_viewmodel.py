@@ -6,6 +6,7 @@ from sqlalchemy.orm import joinedload
 class MemberListViewModel(QObject):
     items_loaded = Signal(list)
     regions_loaded = Signal(list)
+    members_count_changed = Signal(int) # Add this signal
 
     def __init__(self, db_session, parent=None):
         super().__init__(parent)
@@ -64,6 +65,7 @@ class MemberListViewModel(QObject):
 
             members = query.all()
             self.items_loaded.emit(members)
+            self.members_count_changed.emit(len(members)) # Emit the count
         except Exception as e:
             print(f"Error loading members: {e}")
 

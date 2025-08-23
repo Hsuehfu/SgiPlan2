@@ -63,3 +63,7 @@ class BaseManagementWidget(QWidget):
     def _get_search_placeholder(self): raise NotImplementedError
     def _add_specific_filters(self, layout): pass # 可選
     def _clear_search(self): self.search_input.clear()
+
+    # Add this abstract method
+    def _get_status_bar_message(self):
+        raise NotImplementedError

@@ -58,6 +58,9 @@ class PositionListWidget(BaseManagementWidget): # Changed base class
     def _get_table_headers(self):
         return ["職務名稱", "ID"] # Changed order and names for consistency with Region
 
+    def _get_status_bar_message(self):
+        return "職務列表已載入"
+
     def _filter_changed(self):
         """在客戶端過濾樹狀檢視。"""
         search_text = self.search_input.text().lower()

@@ -9,6 +9,8 @@ class MemberListWidget(BaseListWidget):
         super().__init__(viewmodel, parent)
         self.viewmodel.items_loaded.connect(self.display_items)
         self.viewmodel.regions_loaded.connect(self.populate_region_filter)
+        self.viewmodel.members_count_changed.connect(self._update_member_count) # Connect new signal
+        self._member_count = 0 # Initialize count
         self.viewmodel.load_regions() # This is still needed to populate the filter
 
     def _get_window_title(self):
@@ -19,6 +21,14 @@ class MemberListWidget(BaseListWidget):
 
     def _get_table_headers(self):
         return ["姓名", "電話", "是否可排班", "地區"]
+
+    def _get_status_bar_message(self):
+        return f"會員資料數: {self._member_count} 筆"
+
+    def _update_member_count(self, count):
+        self._member_count = count
+        # Trigger status bar update if this tab is currently active
+        # This will be handled by MainWindow's _on_tab_changed
 
     def _add_specific_filters(self, layout):
         self.region_filter_combo = QComboBox()

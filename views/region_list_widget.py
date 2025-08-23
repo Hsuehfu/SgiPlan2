@@ -44,6 +44,9 @@ class RegionListWidget(BaseManagementWidget):
     def _get_table_headers(self):
         return ["地區名稱", "ID"]
 
+    def _get_status_bar_message(self):
+        return "地區列表已載入"
+
     def _filter_changed(self):
         """在客戶端過濾樹狀檢視。"""
         search_text = self.search_input.text().lower()

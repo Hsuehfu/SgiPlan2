@@ -15,6 +15,8 @@ from .region_list_widget import RegionListWidget
 from viewmodels.region_list_viewmodel import RegionListViewModel
 from .position_list_widget import PositionListWidget
 from viewmodels.position_list_viewmodel import PositionListViewModel
+from views.import_widget import ImportWidget
+from viewmodels.import_viewmodel import ImportViewModel
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +34,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.tab_widget)
         self.tab_widget.setTabsClosable(True)
         self.tab_widget.tabCloseRequested.connect(self.tab_widget.removeTab)
+        self.tab_widget.currentChanged.connect(self._on_tab_changed) # Add this line
 
         # Create the first tab, which contains the original list view
         self.item_list_tab = QWidget()
@@ -75,6 +78,11 @@ class MainWindow(QMainWindow):
 
         # File Menu
         file_menu = menu_bar.addMenu("檔案")
+         # --- 匯入會員 Excel 的動作 ---
+        import_action = QAction("匯入Excel...", self)
+        import_action.triggered.connect(self.open_import_tab)
+        file_menu.addAction(import_action)
+
         exit_action = QAction("離開", self)
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
@@ -104,6 +112,10 @@ class MainWindow(QMainWindow):
         # [修改] 直接呼叫通用方法
         self._open_management_tab(PositionListWidget, PositionListViewModel, "職務管理")
         
+    def open_import_tab(self):
+        """開啟或切換到資料匯入分頁。"""
+        self._open_management_tab(ImportWidget, ImportViewModel, "資料匯入")
+
     # views/main_window.py
 
     # [新增] 一個通用的方法來開啟管理分頁
@@ -142,7 +154,20 @@ class MainWindow(QMainWindow):
             widget._load_items()
 
         index = self.tab_widget.addTab(widget, tab_name)
-        self.tab_widget.setCurrentIndex(index)            
+        self.tab_widget.setCurrentIndex(index)
+
+        # Update status bar with the new tab's message
+        if hasattr(widget, '_get_status_bar_message'):
+            self.statusBar().showMessage(widget._get_status_bar_message())
+        else:
+            self.statusBar().showMessage("準備就緒") # Fallback
+
+    def _on_tab_changed(self, index):
+        current_widget = self.tab_widget.widget(index)
+        if hasattr(current_widget, '_get_status_bar_message'):
+            self.statusBar().showMessage(current_widget._get_status_bar_message())
+        else:
+            self.statusBar().showMessage("準備就緒") # Fallback
 
     def apply_stylesheet(self):
         self.setStyleSheet("""
