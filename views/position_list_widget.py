@@ -1,27 +1,117 @@
-from PySide6.QtWidgets import QTableWidgetItem, QMessageBox
-from views.base_list_widget import BaseListWidget
+from PySide6.QtWidgets import (
+    QMessageBox, QTreeWidget, QTreeWidgetItem, QHeaderView
+)
+from PySide6.QtCore import Qt
+from views.base_management_widget import BaseManagementWidget # Changed base class
 from views.position_dialog import PositionDialog
 from viewmodels.position_dialog_viewmodel import PositionDialogViewModel
 from viewmodels.position_list_viewmodel import PositionListViewModel
 
-class PositionListWidget(BaseListWidget):
+class PositionListWidget(BaseManagementWidget): # Changed base class
     def __init__(self, viewmodel: PositionListViewModel, parent=None):
         super().__init__(viewmodel, parent)
+        self.init_ui() # Call init_ui here
         self.viewmodel.items_loaded.connect(self.display_items)
         self.viewmodel.error_occurred.connect(self._show_error_message)
+
+    def init_ui(self):
+        """建立樹狀檢視的 UI 介面。"""
+        super()._init_base_ui() # Initialize common UI from BaseManagementWidget
+
+        # 樹狀檢視
+        self.tree_widget = QTreeWidget(self)
+        self.tree_widget.setColumnCount(len(self._get_table_headers()))
+        self.tree_widget.setHeaderLabels(self._get_table_headers())
+        self.tree_widget.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.tree_widget.setAlternatingRowColors(True)
+        self.tree_widget.setSelectionBehavior(QTreeWidget.SelectRows)
+
+        self.main_layout.addWidget(self.tree_widget)
+
+        # 連接訊號 (from BaseListWidget, adapted for QTreeWidget)
+        self.add_button.clicked.connect(self.open_add_dialog)
+        self.edit_button.clicked.connect(self.open_edit_dialog)
+        self.delete_button.clicked.connect(self._delete_selected_item)
+        self.search_input.textChanged.connect(self._filter_changed)
+        self.clear_search_button.clicked.connect(self._clear_search)
+        # No sectionClicked for QTreeWidget header, sorting is more complex
+        # self.tree_widget.horizontalHeader().sectionClicked.connect(self._sort_items)
 
     def _get_window_title(self):
         return "職務管理"
 
     def _get_search_placeholder(self):
-        return "搜尋職務名稱"
+        return "搜尋職務名稱..." # Added ellipsis for consistency
 
     def _get_table_headers(self):
-        return ["ID", "職務名稱"]
+        return ["職務名稱", "ID"] # Changed order and names for consistency with Region
 
-    def _display_item_row(self, row, position):
-        self.table_widget.setItem(row, 0, QTableWidgetItem(str(position.id)))
-        self.table_widget.setItem(row, 1, QTableWidgetItem(position.name))
+    def _filter_changed(self):
+        """在客戶端過濾樹狀檢視。"""
+        search_text = self.search_input.text().lower()
+        for i in range(self.tree_widget.topLevelItemCount()):
+            self._apply_filter_recursive(self.tree_widget.topLevelItem(i), search_text)
+
+    def _apply_filter_recursive(self, item, search_text):
+        """遞迴地檢查一個項目及其所有子項目是否符合搜尋文字。
+        如果項目本身或其任何子孫符合，則該項目可見。
+        """
+        item_text = item.text(0).lower()
+        self_match = search_text in item_text
+
+        child_match = False
+        for i in range(item.childCount()):
+            if self._apply_filter_recursive(item.child(i), search_text):
+                child_match = True
+
+        is_visible = self_match or child_match
+        item.setHidden(not is_visible)
+        return is_visible
+
+    def _sort_items(self, column_index):
+        # 樹狀結構的排序較複雜，暫不實作
+        pass
+
+    def display_items(self, items):
+        """將扁平的職務列表建立為樹狀結構並顯示。"""
+        self.items = items # Store the flat list of items
+        self.tree_widget.clear()
+
+        position_items = {}  # 映射: position.id -> QTreeWidgetItem
+        root_items = []
+
+        # 第一輪：建立所有 QTreeWidgetItem
+        for position in items:
+            tree_item = QTreeWidgetItem([position.name, str(position.id)])
+            tree_item.setData(0, Qt.UserRole, position)  # 將 position 物件儲存在項目中
+            position_items[position.id] = tree_item
+
+        # 第二輪：建立父子關係
+        for position in items:
+            if position.parent_id and position.parent_id in position_items:
+                parent_item = position_items[position.parent_id]
+                parent_item.addChild(position_items[position.id])
+            else:
+                root_items.append(position_items[position.id])
+
+        self.tree_widget.addTopLevelItems(root_items)
+        self.tree_widget.expandAll()
+        self.tree_widget.resizeColumnToContents(0)
+
+    def _get_delete_confirmation_text(self, item) -> str:
+        """取得刪除職務時的確認訊息文字。"""
+        return f'是否確定要刪除職務 "{self._get_item_name(item)}"?\n\n注意：只有當職務底下沒有子職務時才能刪除。'
+
+    def _delete_selected_item(self):
+        selected_item = self.tree_widget.currentItem()
+        if selected_item:
+            position_to_delete = selected_item.data(0, Qt.UserRole)
+            confirmation_text = self._get_delete_confirmation_text(position_to_delete)
+            reply = QMessageBox.question(self, '確認刪除',
+                                           confirmation_text,
+                                           QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self._perform_delete(position_to_delete.id)
 
     def _get_item_name(self, position):
         return position.name
@@ -29,44 +119,37 @@ class PositionListWidget(BaseListWidget):
     def _perform_delete(self, position_id):
         self.viewmodel.delete_position(position_id)
 
-    def _get_dialog_viewmodel_class(self):
-        return PositionDialogViewModel
-
-    def _get_dialog_class(self):
-        return PositionDialog
-    
     def _load_items(self):
-        search_term = self.search_input.text()
-        self.viewmodel.load_positions(search_term=search_term)
-
-    def _filter_changed(self):
-        self._load_items()
-
-    def _sort_items(self, column_index):
-        order = self.table_widget.horizontalHeader().sortIndicatorOrder()
-        self.viewmodel.sort_positions(column_index, order)
+        # 為了建立完整的樹，我們總是載入所有職務
+        # 過濾操作在客戶端完成
+        self.viewmodel.load_positions()
 
     def _show_error_message(self, message):
         QMessageBox.critical(self, "錯誤", message)
 
     def open_add_dialog(self):
         """處理新增職務的操作。"""
-        dialog_viewmodel = PositionDialogViewModel(db_session=self.viewmodel.session)
+        selected_parent_id = None
+        selected_item = self.tree_widget.currentItem()
+        if selected_item:
+            position_data = selected_item.data(0, Qt.UserRole)
+            selected_parent_id = position_data.id
+
+        dialog_viewmodel = PositionDialogViewModel(db_session=self.viewmodel.session, initial_parent_id=selected_parent_id)
         dialog_viewmodel.position_saved.connect(self._load_items)
-        
         dialog = PositionDialog(dialog_viewmodel, self)
         dialog.exec()
 
     def open_edit_dialog(self):
         """處理編輯職務的操作。"""
-        selected_row = self.table_widget.currentRow()
-        if selected_row >= 0:
-            position_to_edit = self.items[selected_row]
+        selected_item = self.tree_widget.currentItem()
+        if selected_item:
+            position_to_edit = selected_item.data(0, Qt.UserRole)
             dialog_viewmodel = PositionDialogViewModel(
                 db_session=self.viewmodel.session, 
                 position_data=position_to_edit
             )
             dialog_viewmodel.position_saved.connect(self._load_items)
-            
             dialog = PositionDialog(dialog_viewmodel, self)
             dialog.exec()
+

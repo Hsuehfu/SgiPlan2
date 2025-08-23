@@ -52,6 +52,11 @@ class PositionListViewModel(QObject):
         try:
             position = self.session.query(Position).filter_by(id=position_id).first()
             if position:
+                # 檢查是否有子職務
+                if position.children: # This relies on the relationship being loaded
+                    self.error_occurred.emit("此職務底下有子職務，無法刪除。請先刪除所有子職務。")
+                    return
+
                 self.session.delete(position)
                 self.session.commit()
                 self.load_positions()  # 使用當前的過濾和排序設定重新載入
