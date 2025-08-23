@@ -39,6 +39,7 @@ class MemberDialog(QDialog):
         self.viewmodel.save_failed.connect(self._on_save_failed)
         self.viewmodel.positions_loaded.connect(self._update_positions_view)
         self.viewmodel.assigned_positions_changed.connect(self._update_positions_view)
+        self.viewmodel.departments_loaded.connect(self.populate_departments)
 
         # 如果是編輯模式，從 ViewModel 載入資料
         if self.viewmodel.is_editing():
@@ -73,6 +74,7 @@ class MemberDialog(QDialog):
         form_layout.addRow("電話:", self.phone_number_input)
         form_layout.addRow("是否可排班:", self.is_schedulable_checkbox)
         form_layout.addRow("地區:", self.region_combo)
+        form_layout.addRow("部別:", self.department_combobox) 
 
         main_layout.addLayout(form_layout)
         
@@ -88,6 +90,8 @@ class MemberDialog(QDialog):
         self.phone_number_input = QLineEdit()
         self.is_schedulable_checkbox = QCheckBox("可排班")
         self.region_combo = QComboBox()
+        self.department_combobox = QComboBox()
+
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
 
         # 職位相關元件
@@ -131,6 +135,7 @@ class MemberDialog(QDialog):
         self.viewmodel.phone_number = self.phone_number_input.text()
         self.viewmodel.is_schedulable = self.is_schedulable_checkbox.isChecked()
         self.viewmodel.region_id = self.region_combo.currentData()
+        self.viewmodel.department_id = self.department_combobox.currentData()
         # 職位分配的變更已經在 ViewModel 中處理，只需呼叫 save
         self.viewmodel.save()
 
@@ -148,6 +153,17 @@ class MemberDialog(QDialog):
             index = self.region_combo.findData(self.viewmodel.region_id)
             if index != -1:
                 self.region_combo.setCurrentIndex(index)
+
+    def populate_departments(self, departments: list[tuple[int, str]]):
+        """當 ViewModel 載入部別後，填充下拉選單。"""
+        self.department_combobox.clear()
+        for department_id, department_name in departments:
+            self.department_combobox.addItem(department_name, userData=department_id)
+
+        if self.viewmodel.department_id is not None:
+            index = self.department_combobox.findData(self.viewmodel.department_id)
+            if index != -1:
+                self.department_combobox.setCurrentIndex(index)
 
     def _update_positions_view(self):
         """更新可用和已分配的職位列表。"""
@@ -194,4 +210,5 @@ class MemberDialog(QDialog):
         """載入對話框的初始資料。"""
         self.viewmodel.load_regions()
         self.viewmodel.load_positions()
+        self.viewmodel.load_departments()
 

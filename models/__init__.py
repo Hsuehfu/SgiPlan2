@@ -4,6 +4,7 @@ from .member_model import Member
 from .position_model import Position
 from .region_model import Region
 from .member_position_model import MemberPosition
+from .department_model import Department
 
 __all__ = [
     'Base',
@@ -14,4 +15,5 @@ __all__ = [
     'Position',
     'Region',
     'MemberPosition',
+    'Department',
 ]

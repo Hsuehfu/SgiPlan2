@@ -10,6 +10,8 @@ class Member(Base):
     phone_number = Column(String, unique=True, index=True, nullable=True)
     is_schedulable = Column(Integer, default=1, nullable=False)
     region_id = Column(Integer, ForeignKey('regions.id'))
+    department_id = Column(Integer, ForeignKey('departments.id'), nullable=True)
 
     region = relationship("Region", back_populates="members")
     positions = relationship("MemberPosition", back_populates="member", cascade="all, delete-orphan")
+    department = relationship("Department", back_populates="members")

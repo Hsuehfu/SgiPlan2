@@ -5,8 +5,7 @@ from PySide6.QtWidgets import QApplication
 import logging_config
 from views.main_window import MainWindow
 from viewmodels.main_viewmodel import MainViewModel
-from models.database import Base, engine, Session
-from models.member_model import Member
+from models import Base, engine, Session, Member, Department
 
 if __name__ == "__main__":    
     logging_config.setup_logging()
@@ -24,6 +23,22 @@ if __name__ == "__main__":
     db_session = Session()
 
     try:
+        # Seed departments if they don't exist
+        if db_session.query(Department).count() == 0:
+            logging.info("No departments found, seeding initial data.")
+            departments = [
+                Department(name="壯年部"),
+                Department(name="婦人部"),
+                Department(name="男子部"),
+                Department(name="女子部"),
+            ]
+            db_session.add_all(departments)
+            db_session.flush() # Explicitly flush before commit
+            db_session.commit()
+            logging.info("Departments seeded successfully.")
+        else:
+            logging.info("Departments already exist, skipping seeding.")
+
         # Add sample data if the database is empty
         if db_session.query(Member).count() == 0:
             logging.info("No members found, adding sample data.")
@@ -33,7 +48,11 @@ if __name__ == "__main__":
                 Member(name="王五"),
             ]
             db_session.add_all(sample_members)
+            db_session.flush() # Explicitly flush before commit
             db_session.commit()
+            logging.info("Sample members seeded successfully.")
+        else:
+            logging.info("Members already exist, skipping seeding.")
 
         app = QApplication(sys.argv)
 

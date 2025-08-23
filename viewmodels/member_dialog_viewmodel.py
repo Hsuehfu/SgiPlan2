@@ -2,6 +2,7 @@
 
 from PySide6.QtCore import QObject, Signal
 from sqlalchemy.exc import IntegrityError
+from models.department_model import Department
 from models.region_model import Region
 from models.member_model import Member
 from models.position_model import Position
@@ -14,6 +15,7 @@ class MemberDialogViewModel(QObject):
     including their assigned positions.
     """
     regions_loaded = Signal(list)
+    departments_loaded = Signal(list)
     saved_successfully = Signal()
     save_failed = Signal(str)
     positions_loaded = Signal(list)
@@ -35,6 +37,7 @@ class MemberDialogViewModel(QObject):
             self._phone_number = self._member_data.phone_number
             self._is_schedulable = bool(self._member_data.is_schedulable)
             self._region_id = self._member_data.region_id
+            self._department_id = self._member_data.department_id
             # Load existing assigned positions
             self._assigned_positions = list(self._member_data.positions)
         else:  # Add mode
@@ -42,6 +45,7 @@ class MemberDialogViewModel(QObject):
             self._phone_number = ""
             self._is_schedulable = True
             self._region_id = None
+            self._department_id = None
 
     @property
     def name(self):
@@ -76,6 +80,14 @@ class MemberDialogViewModel(QObject):
         self._region_id = value
 
     @property
+    def department_id(self):
+        return self._department_id
+
+    @department_id.setter
+    def department_id(self, value):
+        self._department_id = value
+
+    @property
     def all_positions(self) -> list[Position]:
         """Returns the list of all available positions."""
         return self._all_positions
@@ -94,6 +106,19 @@ class MemberDialogViewModel(QObject):
         except Exception as e:
             print(f"Error loading regions: {e}")
             self.regions_loaded.emit([])
+
+    def load_departments(self):
+        """Loads department data from the database."""
+        print("--- Loading departments ---")
+        try:
+            departments = self.session.query(Department).order_by(Department.id).all()
+            print(f"Found {len(departments)} departments.")
+            department_data = [(department.id, department.name) for department in departments]
+            print(f"Emitting department data: {department_data}")
+            self.departments_loaded.emit(department_data)
+        except Exception as e:
+            print(f"Error loading departments: {e}")
+            self.departments_loaded.emit([])
 
     def load_positions(self):
         """Loads all available positions from the database."""
@@ -172,12 +197,14 @@ class MemberDialogViewModel(QObject):
                 member.phone_number = self._phone_number
                 member.is_schedulable = self._is_schedulable
                 member.region_id = self._region_id
+                member.department_id = self._department_id
             else:
                 member = Member(
                     name=self._name,
                     phone_number=self._phone_number,
                     is_schedulable=self._is_schedulable,
-                    region_id=self._region_id
+                    region_id=self._region_id,
+                    department_id=self._department_id
                 )
                 self.session.add(member)
             
@@ -209,6 +236,8 @@ class MemberDialogViewModel(QObject):
                         is_primary=mp_stub.is_primary
                     )
                     self.session.add(new_mp)
+
+
 
             self.session.commit()
             self.saved_successfully.emit()
