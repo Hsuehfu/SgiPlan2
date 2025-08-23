@@ -3,8 +3,11 @@
 此對話框遵循 MVVM 架構，與 MemberDialogViewModel 互動，
 處理使用者輸入並顯示會員資料。
 """
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QComboBox, QDialogButtonBox, QFormLayout, QCheckBox, QMessageBox
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (QDialog, QVBoxLayout, QLineEdit, QComboBox, 
+                               QDialogButtonBox, QFormLayout, QCheckBox, 
+                               QMessageBox, QGroupBox, QHBoxLayout, 
+                               QListWidget, QPushButton, QListWidgetItem)
+from PySide6.QtCore import Qt, QSize
 
 from viewmodels.member_dialog_viewmodel import MemberDialogViewModel
 
@@ -14,11 +17,7 @@ class MemberDialog(QDialog):
 
     Attributes:
         viewmodel (MemberDialogViewModel): 與此視圖對應的視圖模型。
-        name_input (QLineEdit): 用於輸入會員姓名的文字方塊。
-        phone_number_input (QLineEdit): 用於輸入會員電話的文字方塊。
-        is_schedulable_checkbox (QCheckBox): 用於設定會員是否可排班的核取方塊。
-        region_combo (QComboBox): 用于選擇會員所屬地區的下拉式選單。
-        button_box (QDialogButtonBox): 包含確定和取消按鈕的按鈕盒。
+        # ... 其他 UI 元件
     """
 
     def __init__(self, viewmodel: MemberDialogViewModel, parent=None):
@@ -38,11 +37,16 @@ class MemberDialog(QDialog):
         self.viewmodel.regions_loaded.connect(self.populate_regions)
         self.viewmodel.saved_successfully.connect(self.accept)
         self.viewmodel.save_failed.connect(self._on_save_failed)
+        self.viewmodel.positions_loaded.connect(self._update_positions_view)
+        self.viewmodel.assigned_positions_changed.connect(self._update_positions_view)
 
         # 如果是編輯模式，從 ViewModel 載入資料
-        if self.viewmodel.is_editing():  # <--- 呼叫公開方法，而不是存取私有屬性
+        if self.viewmodel.is_editing():
             self._populate_fields_from_viewmodel()
             self.setWindowTitle("編輯會員")
+        else:
+            self.setWindowTitle("新增會員")
+
 
     def _populate_fields_from_viewmodel(self):
         """根據 ViewModel 中的會員資料填充對話框欄位。"""
@@ -50,22 +54,32 @@ class MemberDialog(QDialog):
         self.phone_number_input.setText(self.viewmodel.phone_number)
         self.is_schedulable_checkbox.setChecked(bool(self.viewmodel.is_schedulable))
         # populate_regions 會在 regions_loaded 訊號發出時處理選擇正確的地區
-
+        # _update_positions_view 會在 assigned_positions_changed 訊號發出時處理
+        
     def _setup_ui(self):
         """設定 UI 元件和版面配置。"""
-        self.setWindowTitle("新增會員")
-        self.setMinimumWidth(300)
+        self.setMinimumWidth(500) # 增加寬度以容納職位管理
 
         main_layout = QVBoxLayout(self)
         main_layout.setSpacing(15)
         main_layout.setContentsMargins(15, 15, 15, 15)
 
         self._create_widgets()
-        form_layout = self._create_layout()
+        
+        form_layout = QFormLayout()
+        form_layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
+        form_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        form_layout.addRow("姓名:", self.name_input)
+        form_layout.addRow("電話:", self.phone_number_input)
+        form_layout.addRow("是否可排班:", self.is_schedulable_checkbox)
+        form_layout.addRow("地區:", self.region_combo)
 
         main_layout.addLayout(form_layout)
-        main_layout.addWidget(self.button_box)
+        
+        positions_group_box = self._create_positions_group_box()
+        main_layout.addWidget(positions_group_box)
 
+        main_layout.addWidget(self.button_box)
         self.setLayout(main_layout)
 
     def _create_widgets(self):
@@ -76,21 +90,40 @@ class MemberDialog(QDialog):
         self.region_combo = QComboBox()
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
 
-    def _create_layout(self) -> QFormLayout:
-        """建立並返回表單版面配置。"""
-        form_layout = QFormLayout()
-        form_layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
-        form_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
-        form_layout.addRow("姓名:", self.name_input)
-        form_layout.addRow("電話:", self.phone_number_input)
-        form_layout.addRow("是否可排班:", self.is_schedulable_checkbox)
-        form_layout.addRow("地區:", self.region_combo)
-        return form_layout
+        # 職位相關元件
+        self.available_positions_list = QListWidget()
+        self.assigned_positions_list = QListWidget()
+        self.add_position_button = QPushButton(">>")
+        self.remove_position_button = QPushButton("<<")
+
+
+    def _create_positions_group_box(self) -> QGroupBox:
+        """建立並返回職位管理的 GroupBox。"""
+        positions_group_box = QGroupBox("職位管理 (雙擊已分配職位可設為主要)")
+        positions_layout = QHBoxLayout()
+
+        # 按鈕佈局
+        button_layout = QVBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(self.add_position_button)
+        button_layout.addWidget(self.remove_position_button)
+        button_layout.addStretch()
+
+        positions_layout.addWidget(self.available_positions_list)
+        positions_layout.addLayout(button_layout)
+        positions_layout.addWidget(self.assigned_positions_list)
+        
+        positions_group_box.setLayout(positions_layout)
+        return positions_group_box
 
     def _connect_signals(self):
         """連接所有訊號與槽。"""
         self.button_box.accepted.connect(self._on_accept_clicked)
         self.button_box.rejected.connect(self.reject)
+
+        self.add_position_button.clicked.connect(self._on_add_position)
+        self.remove_position_button.clicked.connect(self._on_remove_position)
+        self.assigned_positions_list.itemDoubleClicked.connect(self._on_set_primary_position)
 
     def _on_accept_clicked(self):
         """處理確定按鈕點擊事件，將資料保存到 ViewModel。"""
@@ -98,6 +131,7 @@ class MemberDialog(QDialog):
         self.viewmodel.phone_number = self.phone_number_input.text()
         self.viewmodel.is_schedulable = self.is_schedulable_checkbox.isChecked()
         self.viewmodel.region_id = self.region_combo.currentData()
+        # 職位分配的變更已經在 ViewModel 中處理，只需呼叫 save
         self.viewmodel.save()
 
     def _on_save_failed(self, message: str):
@@ -108,16 +142,56 @@ class MemberDialog(QDialog):
         """當 ViewModel 載入地區後，填充下拉選單。"""
         self.region_combo.clear()
         for region_id, region_name in regions:
-          self.region_combo.addItem(region_name, userData=region_id)
+            self.region_combo.addItem(region_name, userData=region_id)
 
-       # 唯一的真相來源：永遠以 ViewModel 的 region_id 為準
-        index = -1 # Initialize index
         if self.viewmodel.region_id is not None:
-          index = self.region_combo.findData(self.viewmodel.region_id)
-          if index != -1:
-            self.region_combo.setCurrentIndex(index)
+            index = self.region_combo.findData(self.viewmodel.region_id)
+            if index != -1:
+                self.region_combo.setCurrentIndex(index)
+
+    def _update_positions_view(self):
+        """更新可用和已分配的職位列表。"""
+        # 獲取當前已分配職位的 ID 集合
+        assigned_ids = {p["id"] for p in self.viewmodel.get_assigned_positions_for_view()}
+
+        # 更新可用職位列表
+        self.available_positions_list.clear()
+        for pos in self.viewmodel.all_positions:
+            if pos.id not in assigned_ids:
+                item = QListWidgetItem(pos.name)
+                item.setData(Qt.ItemDataRole.UserRole, pos.id)
+                self.available_positions_list.addItem(item)
+
+        # 更新已分配職位列表
+        self.assigned_positions_list.clear()
+        for pos_data in self.viewmodel.get_assigned_positions_for_view():
+            display_text = f"{pos_data['name']}{' (主要)' if pos_data['is_primary'] else ''}"
+            item = QListWidgetItem(display_text)
+            item.setData(Qt.ItemDataRole.UserRole, pos_data['id'])
+            self.assigned_positions_list.addItem(item)
+
+
+    def _on_add_position(self):
+        """處理新增職位按鈕點擊事件。"""
+        selected_item = self.available_positions_list.currentItem()
+        if selected_item:
+            position_id = selected_item.data(Qt.ItemDataRole.UserRole)
+            self.viewmodel.add_position(position_id)
+
+    def _on_remove_position(self):
+        """處理移除職位按鈕點擊事件。"""
+        selected_item = self.assigned_positions_list.currentItem()
+        if selected_item:
+            position_id = selected_item.data(Qt.ItemDataRole.UserRole)
+            self.viewmodel.remove_position(position_id)
+
+    def _on_set_primary_position(self, item: QListWidgetItem):
+        """處理設定主要職位的雙擊事件。"""
+        position_id = item.data(Qt.ItemDataRole.UserRole)
+        self.viewmodel.set_primary_position(position_id)
 
     def load_initial_data(self):
-        """載入對話框的初始資料，例如地區列表。"""
+        """載入對話框的初始資料。"""
         self.viewmodel.load_regions()
+        self.viewmodel.load_positions()
 
