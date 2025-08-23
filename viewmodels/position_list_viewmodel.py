@@ -36,11 +36,8 @@ class PositionListViewModel(QObject):
             elif self.current_sort_column == 1:  # 職務名稱欄位
                 sort_field = Position.name
 
-            if sort_field is not None:
-                if self.current_sort_order == Qt.AscendingOrder:
-                    query = query.order_by(sort_field.asc())
-                else:
-                    query = query.order_by(sort_field.desc())
+            # Always order by parent_id and rank for correct tree structure
+            query = query.order_by(Position.parent_id.asc(), Position.rank.asc())
 
             positions = query.all()
             self.items_loaded.emit(positions)
@@ -68,3 +65,17 @@ class PositionListViewModel(QObject):
 
     def sort_positions(self, column_index, order):
         self.load_positions(sort_column=column_index, sort_order=order)
+
+    def update_positions_hierarchy(self, hierarchy_data: list):
+        """更新職務的層級和排序。"""
+        try:
+            for item_data in hierarchy_data:
+                position = self.session.query(Position).filter_by(id=item_data['id']).first()
+                if position:
+                    position.parent_id = item_data['parent_id']
+                    position.rank = item_data['rank'] # Update rank based on new order
+            self.session.commit()
+            self.load_positions() # Reload to reflect changes
+        except Exception as e:
+            self.session.rollback()
+            self.error_occurred.emit(f"更新職務層級時發生錯誤: {e}")

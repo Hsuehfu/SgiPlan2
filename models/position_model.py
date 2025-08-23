@@ -8,11 +8,15 @@ class Position(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
+    # nullable=False: 確保每個職務都有 rank 值
+    # server_default='0': 讓資料庫為現有資料提供一個預設值
+    rank = Column(Integer, nullable=False, server_default='0')
+
     parent_id = Column(Integer, ForeignKey('positions.id'), nullable=True)
 
     parent = relationship("Position", remote_side=[id], back_populates="children", lazy="joined")
     children = relationship("Position", back_populates="parent", cascade="all, delete-orphan")
 
     def __repr__(self):
-        return f"<Position(id={self.id}, name='{self.name}', parent_id={self.parent_id})>"
+        return f"<Position(id={self.id}, name='{self.name}', parent_id={self.parent_id}, rank={self.rank})>"
 

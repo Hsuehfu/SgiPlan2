@@ -1,7 +1,8 @@
 from PySide6.QtWidgets import (
-    QMessageBox, QTreeWidget, QTreeWidgetItem, QHeaderView
+    QMessageBox, QTreeWidget, QTreeWidgetItem, QHeaderView, QAbstractItemView, QMenu
 )
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QDropEvent, QAction # Import QDropEvent and QAction
 from views.base_management_widget import BaseManagementWidget # Changed base class
 from views.position_dialog import PositionDialog
 from viewmodels.position_dialog_viewmodel import PositionDialogViewModel
@@ -25,6 +26,17 @@ class PositionListWidget(BaseManagementWidget): # Changed base class
         self.tree_widget.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.tree_widget.setAlternatingRowColors(True)
         self.tree_widget.setSelectionBehavior(QTreeWidget.SelectRows)
+
+        # 啟用拖放
+        self.tree_widget.setDragEnabled(True)
+        self.tree_widget.setDropIndicatorShown(True)
+        self.tree_widget.setDragDropMode(QAbstractItemView.InternalMove)
+        self.tree_widget.setDefaultDropAction(Qt.MoveAction)
+        self.tree_widget.setDragDropOverwriteMode(False) # 插入，而不是覆蓋
+
+        # 啟用上下文選單
+        self.tree_widget.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tree_widget.customContextMenuRequested.connect(self._show_context_menu)
 
         self.main_layout.addWidget(self.tree_widget)
 
@@ -152,4 +164,111 @@ class PositionListWidget(BaseManagementWidget): # Changed base class
             dialog_viewmodel.position_saved.connect(self._load_items)
             dialog = PositionDialog(dialog_viewmodel, self)
             dialog.exec()
+
+    def dropEvent(self, event: QDropEvent):
+        # 讓基礎 QTreeWidget 處理視覺移動
+        super().dropEvent(event)
+
+        # 在視覺移動後，更新底層資料模型
+        self._update_position_hierarchy_in_viewmodel()
+        event.acceptProposedAction()
+
+    def _update_position_hierarchy_in_viewmodel(self):
+        # 此方法將遍歷 QTreeWidget 並將更新後的層次結構發送到 ViewModel
+        updated_hierarchy = []
+        for i in range(self.tree_widget.topLevelItemCount()):
+            self._traverse_tree_item(self.tree_widget.topLevelItem(i), None, updated_hierarchy)
+        self.viewmodel.update_positions_hierarchy(updated_hierarchy)
+
+    def _traverse_tree_item(self, item: QTreeWidgetItem, parent_id: int | None, hierarchy_list: list):
+        position = item.data(0, Qt.UserRole)
+        if position:
+            # 計算 rank: 在其父級中的索引
+            if item.parent():
+                rank = item.parent().indexOfChild(item)
+            else:
+                rank = item.treeWidget().indexOfTopLevelItem(item)
+
+            hierarchy_list.append({
+                'id': position.id,
+                'parent_id': parent_id,
+                'rank': rank
+            })
+        for i in range(item.childCount()):
+            self._traverse_tree_item(item.child(i), position.id if position else None, hierarchy_list)
+
+    def _show_context_menu(self, position):
+        menu = QMenu(self)
+
+        add_action = QAction("新增", self)
+        add_action.triggered.connect(self.open_add_dialog)
+        menu.addAction(add_action)
+
+        edit_action = QAction("修改", self)
+        edit_action.triggered.connect(self.open_edit_dialog)
+        menu.addAction(edit_action)
+
+        selected_item = self.tree_widget.currentItem()
+        if selected_item: # Only enable move actions if an item is selected
+            menu.addSeparator() # Separator for move actions
+
+            move_up_action = QAction("上移", self)
+            move_up_action.triggered.connect(self._move_item_up)
+            menu.addAction(move_up_action)
+
+            move_down_action = QAction("下移", self)
+            move_down_action.triggered.connect(self._move_item_down)
+            menu.addAction(move_down_action)
+
+        menu.exec(self.tree_widget.mapToGlobal(position))
+
+    def _move_item_up(self):
+        selected_item = self.tree_widget.currentItem()
+        if not selected_item:
+            return
+
+        parent_item = selected_item.parent()
+        if parent_item:
+            index = parent_item.indexOfChild(selected_item)
+            if index > 0:
+                # Move visually
+                item_to_move = parent_item.takeChild(index)
+                parent_item.insertChild(index - 1, item_to_move)
+
+                # Update ViewModel
+                self._update_position_hierarchy_in_viewmodel()
+        else: # Top-level item
+            index = self.tree_widget.indexOfTopLevelItem(selected_item)
+            if index > 0:
+                # Move visually
+                item_to_move = self.tree_widget.takeTopLevelItem(index)
+                self.tree_widget.insertTopLevelItem(index - 1, item_to_move)
+
+                # Update ViewModel
+                self._update_position_hierarchy_in_viewmodel()
+
+    def _move_item_down(self):
+        selected_item = self.tree_widget.currentItem()
+        if not selected_item:
+            return
+
+        parent_item = selected_item.parent()
+        if parent_item:
+            index = parent_item.indexOfChild(selected_item)
+            if index < parent_item.childCount() - 1:
+                # Move visually
+                item_to_move = parent_item.takeChild(index)
+                parent_item.insertChild(index + 1, item_to_move)
+
+                # Update ViewModel
+                self._update_position_hierarchy_in_viewmodel()
+        else: # Top-level item
+            index = self.tree_widget.indexOfTopLevelItem(selected_item)
+            if index < self.tree_widget.topLevelItemCount() - 1:
+                # Move visually
+                item_to_move = self.tree_widget.takeTopLevelItem(index)
+                self.tree_widget.insertTopLevelItem(index + 1, item_to_move)
+
+                # Update ViewModel
+                self._update_position_hierarchy_in_viewmodel()
 
