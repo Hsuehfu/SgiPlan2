@@ -12,7 +12,7 @@ class RegionDialogViewModel(QObject):
     parents_loaded = Signal(list)
     load_failed = Signal(str) 
 
-    def __init__(self, db_session, region_data: Region = None, parent=None):
+    def __init__(self, db_session, region_data: Region = None, initial_parent_id: int = None, parent=None):
         super().__init__(parent)
         self.session = db_session  # 持有傳入的共享 Session
         self._region_data = region_data  # This is the original model object for editing
@@ -26,7 +26,7 @@ class RegionDialogViewModel(QObject):
             # Add mode: initialize with empty state
             self._id = None
             self._name = ""
-            self._parent_id = None
+            self._parent_id = initial_parent_id # Use initial_parent_id if provided
 
     @property
     def name(self):

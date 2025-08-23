@@ -119,7 +119,13 @@ class RegionListWidget(BaseManagementWidget):
 
     def open_add_dialog(self):
         """處理新增地區的操作。"""
-        dialog_viewmodel = RegionDialogViewModel(db_session=self.viewmodel.session)
+        selected_parent_id = None
+        selected_item = self.tree_widget.currentItem()
+        if selected_item:
+            region_data = selected_item.data(0, Qt.UserRole)
+            selected_parent_id = region_data.id
+
+        dialog_viewmodel = RegionDialogViewModel(db_session=self.viewmodel.session, initial_parent_id=selected_parent_id)
         dialog_viewmodel.saved_successfully.connect(self._load_items)
         dialog = RegionDialog(dialog_viewmodel, self)
         dialog.exec()
