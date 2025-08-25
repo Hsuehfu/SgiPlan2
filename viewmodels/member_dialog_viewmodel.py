@@ -1,5 +1,4 @@
-# viewmodels/member_dialog_viewmodel.py
-
+import logging
 from PySide6.QtCore import QObject, Signal
 from sqlalchemy.exc import IntegrityError
 from models.member_model import Member
@@ -11,6 +10,8 @@ from repositories.region_repository import RegionRepository
 from repositories.department_repository import DepartmentRepository
 from repositories.position_repository import PositionRepository
 from repositories.member_position_repository import MemberPositionRepository
+
+logger = logging.getLogger(__name__)
 
 class MemberDialogViewModel(QObject):
     """
@@ -41,6 +42,7 @@ class MemberDialogViewModel(QObject):
         self._assigned_positions = []
 
         if self._member_data:  # Edit mode
+            logger.debug(f"Initializing MemberDialogViewModel in edit mode for member ID: {self._member_data.id}")
             self._name = self._member_data.name
             self._phone_number = self._member_data.phone_number
             self._is_schedulable = bool(self._member_data.is_schedulable)
@@ -48,6 +50,7 @@ class MemberDialogViewModel(QObject):
             self._department_id = self._member_data.department_id
             self._assigned_positions = list(self._member_data.positions)
         else:  # Add mode
+            logger.debug("Initializing MemberDialogViewModel in add mode.")
             self._name = ""
             self._phone_number = ""
             self._is_schedulable = True
@@ -103,38 +106,43 @@ class MemberDialogViewModel(QObject):
         return self._assigned_positions
 
     def load_regions(self):
+        logger.debug("Loading regions.")
         try:
             regions = self.region_repo.get_all()
             region_data = [(region.id, region.name) for region in regions]
             self.regions_loaded.emit(region_data)
         except Exception as e:
-            print(f"Error loading regions: {e}")
+            logger.error(f"Error loading regions: {e}")
             self.regions_loaded.emit([])
 
     def load_departments(self):
+        logger.debug("Loading departments.")
         try:
             departments = self.department_repo.get_all()
             department_data = [(department.id, department.name) for department in departments]
             self.departments_loaded.emit(department_data)
         except Exception as e:
-            print(f"Error loading departments: {e}")
+            logger.error(f"Error loading departments: {e}")
             self.departments_loaded.emit([])
 
     def load_positions(self):
+        logger.debug("Loading positions.")
         try:
             self._all_positions = self.position_repo.get_all_sorted_by_rank()
             position_data = [(pos.id, pos.name) for pos in self._all_positions]
             self.positions_loaded.emit(position_data)
         except Exception as e:
-            print(f"Error loading positions: {e}")
+            logger.error(f"Error loading positions: {e}")
             self.positions_loaded.emit([])
 
     def add_position(self, position_id: int, is_primary: bool = False):
         if any(mp.position_id == position_id for mp in self._assigned_positions):
+            logger.warning(f"Attempted to add already assigned position ID: {position_id}")
             return
 
         position = self.position_repo.get_by_id(position_id)
         if position:
+            logger.debug(f"Adding position ID: {position_id} to member.")
             if is_primary:
                 for mp in self._assigned_positions:
                     mp.is_primary = False
@@ -149,12 +157,14 @@ class MemberDialogViewModel(QObject):
             self.assigned_positions_changed.emit(self.get_assigned_positions_for_view())
 
     def remove_position(self, position_id: int):
+        logger.debug(f"Removing position ID: {position_id} from member.")
         self._assigned_positions = [
             mp for mp in self._assigned_positions if mp.position_id != position_id
         ]
         self.assigned_positions_changed.emit(self.get_assigned_positions_for_view())
 
     def set_primary_position(self, position_id: int):
+        logger.debug(f"Setting primary position to ID: {position_id}.")
         for mp in self._assigned_positions:
             mp.is_primary = (mp.position_id == position_id)
         self.assigned_positions_changed.emit(self.get_assigned_positions_for_view())
@@ -166,12 +176,15 @@ class MemberDialogViewModel(QObject):
         ]
 
     def save(self):
+        logger.info("Attempting to save member data.")
         if not self._name or not self._name.strip():
+            logger.warning("Save failed: Name is empty.")
             self.save_failed.emit("姓名不能為空。")
             return
             
         try:
             if self.is_editing():
+                logger.info(f"Updating member ID: {self._member_data.id}")
                 member = self._member_data
                 member.name = self._name
                 member.phone_number = self._phone_number
@@ -179,6 +192,7 @@ class MemberDialogViewModel(QObject):
                 member.region_id = self._region_id
                 member.department_id = self._department_id
             else:
+                logger.info(f"Creating new member with name: {self._name}")
                 member = Member(
                     name=self._name,
                     phone_number=self._phone_number,
@@ -189,19 +203,25 @@ class MemberDialogViewModel(QObject):
                 self.member_repo.add(member)
             
             self.session.flush()
+            logger.debug(f"Member flushed. ID is now: {member.id}")
 
             existing_assignments = {mp.position_id: mp for mp in member.positions}
             current_assignment_pids = {mp.position_id for mp in self._assigned_positions}
 
+            logger.debug(f"Synchronizing positions. Existing: {list(existing_assignments.keys())}, Current: {list(current_assignment_pids)}")
             for pid, assignment in existing_assignments.items():
                 if pid not in current_assignment_pids:
+                    logger.debug(f"Deleting position assignment for position ID: {pid}")
                     self.member_position_repo.delete(assignment)
 
             for mp_stub in self._assigned_positions:
                 if mp_stub.position_id in existing_assignments:
                     existing_mp = existing_assignments[mp_stub.position_id]
-                    existing_mp.is_primary = mp_stub.is_primary
+                    if existing_mp.is_primary != mp_stub.is_primary:
+                        logger.debug(f"Updating primary status for position ID: {mp_stub.position_id}")
+                        existing_mp.is_primary = mp_stub.is_primary
                 else:
+                    logger.debug(f"Adding new position assignment for position ID: {mp_stub.position_id}")
                     new_mp = MemberPosition(
                         member_id=member.id,
                         position_id=mp_stub.position_id,
@@ -210,18 +230,20 @@ class MemberDialogViewModel(QObject):
                     self.member_position_repo.add(new_mp)
 
             self.session.commit()
+            logger.info(f"Successfully saved member ID: {member.id}")
             self.saved_successfully.emit()
             
         except IntegrityError as e:
             self.session.rollback()
+            logger.warning(f"Database integrity error on save: {e}")
             if "UNIQUE constraint failed: members.phone_number" in str(e):
                 self.save_failed.emit("電話號碼重複，請輸入不同的號碼。")
             else:
-                self.save_failed.emit(f"儲存失敗，資料庫錯誤：\n{e}")
+                self.save_failed.emit(f"儲存失敗，資料庫錯誤：{e}")
         except Exception as e:
             self.session.rollback()
-            print(f"Error saving member data: {e}")
-            self.save_failed.emit(f"發生未預期的錯誤：\n{e}")
+            logger.error(f"Unexpected error saving member data: {e}", exc_info=True)
+            self.save_failed.emit(f"發生未預期的錯誤：{e}")
 
     def is_editing(self) -> bool:
         return self._member_data is not None
