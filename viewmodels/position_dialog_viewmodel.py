@@ -1,6 +1,7 @@
 import logging
 from PySide6.QtCore import QObject, Signal
 from models.position_model import Position
+from repositories.position_repository import PositionRepository
 from sqlalchemy.exc import IntegrityError
 
 logger = logging.getLogger(__name__)
@@ -14,6 +15,7 @@ class PositionDialogViewModel(QObject):
     def __init__(self, db_session, position_data: Position = None, initial_parent_id: int = None, parent=None):
         super().__init__(parent)
         self.session = db_session
+        self.position_repo = PositionRepository(db_session)
         self._position_data = position_data
 
         if self.is_editing():
@@ -58,7 +60,7 @@ class PositionDialogViewModel(QObject):
                 logger.info(f"Updating position ID: {self._id} with name: {self._name}")
             else:
                 new_position = Position(name=self._name, parent_id=self._parent_id)
-                self.session.add(new_position)
+                self.position_repo.add(new_position)
                 logger.info(f"Adding new position with name: {self._name}")
 
             self.session.commit()
@@ -76,34 +78,13 @@ class PositionDialogViewModel(QObject):
             logger.error(f"Error saving position: {e}")
             self.error_occurred.emit(f"儲存職務時發生未知錯誤: {e}")
 
-    def _get_all_descendant_ids(self, position_id):
-        """遞迴獲取一個職務的所有後代ID。"""
-        descendant_ids = set()
-        children = (
-            self.session.query(Position.id).filter(Position.parent_id == position_id).all()
-        )
-
-        for (child_id,) in children:
-            if child_id not in descendant_ids:
-                descendant_ids.add(child_id)
-                descendant_ids.update(self._get_all_descendant_ids(child_id))
-        return descendant_ids
-
     def load_possible_parents(self):
         """載入所有可作為父級的職務列表。"""
         try:
-            query = self.session.query(Position)
-            if self.is_editing():
-                # 建立一個禁止成為父級的ID列表
-                excluded_ids = {self._id}  # 排除自己
-                descendant_ids = self._get_all_descendant_ids(self._id)
-                excluded_ids.update(descendant_ids)
-
-                query = query.filter(Position.id.notin_(excluded_ids))
-
-            parents = query.order_by(Position.name).all()
+            position_id_to_exclude = self._id if self.is_editing() else None
+            parents = self.position_repo.get_possible_parents(position_id_to_exclude)
             self.parents_loaded.emit(parents)
         except Exception as e:
             logger.error(f"Error loading parent positions: {e}")
-            self.parents_loaded.emit([])  # 發送一個空列表，而不是錯誤字串
+            self.parents_loaded.emit([])
             self.load_failed.emit(f"載入父級職務時發生錯誤: {e}")

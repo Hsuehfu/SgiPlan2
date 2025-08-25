@@ -1,18 +1,19 @@
 import pandas as pd
 from sqlalchemy.orm import sessionmaker
 from models.member_model import Member
-from models.position_model import Position
-from models.region_model import Region
 from models.member_position_model import MemberPosition
 from collections import namedtuple
 
-# 定義一個簡單的資料結構來回傳每一列的處理結果
+from repositories.region_repository import RegionRepository
+from repositories.position_repository import PositionRepository
+from repositories.member_repository import MemberRepository
+from repositories.member_position_repository import MemberPositionRepository
+
 RowResult = namedtuple('RowResult', ['row_index', 'status', 'message'])
 
 class MemberImporter:
     """
     負責從 Excel 檔案匯入會員資料到資料庫的核心服務。
-    這個版本支援預覽和進度回報。
     """
     def __init__(self, session_factory: sessionmaker):
         self.Session = session_factory
@@ -22,7 +23,6 @@ class MemberImporter:
         try:
             df = pd.read_excel(file_path)
             df.columns = [col.strip() for col in df.columns]
-            # 將所有資料轉為字串以方便顯示，並填充 NaN
             return df.astype(str).fillna('')
         except Exception as e:
             raise ValueError(f"讀取或解析 Excel 檔案失敗: {e}")
@@ -30,18 +30,18 @@ class MemberImporter:
     def run_import(self, dataframe: pd.DataFrame):
         """
         執行匯入程序，這是一個 generator，會逐筆回報進度。
-
-        Args:
-            dataframe (pd.DataFrame): 從預覽步驟得到的 DataFrame。
-
-        Yields:
-            RowResult: 每一列資料的處理結果。
         """
         with self.Session() as session:
-            # 預先載入快取
-            existing_regions = {r.name: r.id for r in session.query(Region).all()}
-            existing_positions = {p.name: p.id for p in session.query(Position).all()}
-            existing_members = {m.name: m for m in session.query(Member).all()}
+            # Repositories
+            region_repo = RegionRepository(session)
+            position_repo = PositionRepository(session)
+            member_repo = MemberRepository(session)
+            member_position_repo = MemberPositionRepository(session)
+
+            # Pre-caching
+            existing_regions = {r.name: r.id for r in region_repo.get_all()}
+            existing_positions = {p.name: p.id for p in position_repo.get_all()}
+            existing_members = {m.name: m for m in member_repo.get_all()}
 
             for index, row in dataframe.iterrows():
                 try:
@@ -67,27 +67,27 @@ class MemberImporter:
                         member.region_id = region_id
                     else:
                         member = Member(name=name, phone_number=phone, region_id=region_id)
-                        session.add(member)
-                        session.flush()
+                        member_repo.add(member)
+                        session.flush() # Flush to get ID for new member
                         existing_members[name] = member
 
-                    existing_assignment = session.query(MemberPosition).filter_by(
-                        member_id=member.id, position_id=position_id).first()
+                    existing_assignment = member_position_repo.find_by_member_and_position(
+                        member_id=member.id, position_id=position_id)
 
                     if not existing_assignment:
-                        has_primary = session.query(MemberPosition).filter_by(
-                            member_id=member.id, is_primary=1).count() > 0
+                        has_primary = member_position_repo.has_primary_position(member.id)
                         new_assignment = MemberPosition(
                             member_id=member.id,
                             position_id=position_id,
-                            is_primary=0 if has_primary else 1
+                            is_primary=not has_primary
                         )
-                        session.add(new_assignment)
+                        member_position_repo.add(new_assignment)
                     
-                    session.commit() # 逐筆提交
+                    session.commit()
                     yield RowResult(index, "success", "匯入成功")
 
                 except Exception as e:
-                    session.rollback() # 單筆錯誤則回滾
+                    session.rollback()
                     yield RowResult(index, "failure", str(e))
+
 

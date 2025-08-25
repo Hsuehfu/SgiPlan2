@@ -2,6 +2,7 @@ import logging
 from PySide6.QtCore import QObject, Signal
 from sqlalchemy.exc import IntegrityError
 from models.region_model import Region
+from repositories.region_repository import RegionRepository
 
 logger = logging.getLogger(__name__)
 
@@ -14,19 +15,18 @@ class RegionDialogViewModel(QObject):
 
     def __init__(self, db_session, region_data: Region = None, initial_parent_id: int = None, parent=None):
         super().__init__(parent)
-        self.session = db_session  # 持有傳入的共享 Session
-        self._region_data = region_data  # This is the original model object for editing
+        self.session = db_session
+        self.region_repo = RegionRepository(db_session)
+        self._region_data = region_data
 
         if self.is_editing():
-            # Editing mode: initialize state from the model object
             self._id = self._region_data.id
             self._name = self._region_data.name
             self._parent_id = self._region_data.parent_id
         else:
-            # Add mode: initialize with empty state
             self._id = None
             self._name = ""
-            self._parent_id = initial_parent_id # Use initial_parent_id if provided
+            self._parent_id = initial_parent_id
 
     @property
     def name(self):
@@ -56,14 +56,12 @@ class RegionDialogViewModel(QObject):
                 return
 
             if self.is_editing():
-                # Update existing region. The object is already in the session.
                 self._region_data.name = self._name
                 self._region_data.parent_id = self._parent_id
                 logger.info(f"Updating region ID: {self._id} with name: {self._name}")
             else:
-                # Add new region
                 new_region = Region(name=self._name, parent_id=self._parent_id)
-                self.session.add(new_region)
+                self.region_repo.add(new_region)
                 logger.info(f"Adding new region with name: {self._name}")
 
             self.session.commit()
@@ -79,37 +77,13 @@ class RegionDialogViewModel(QObject):
             logger.error(f"Error saving region: {e}")
             self.save_failed.emit(f"儲存地區時發生錯誤: {e}")
 
-    def _get_all_descendant_ids(self, region_id):
-        """遞迴獲取一個地區的所有後代ID。"""
-        descendant_ids = set()
-        children = (
-            self.session.query(Region.id).filter(Region.parent_id == region_id).all()
-        )
-
-        for (child_id,) in children:
-            if child_id not in descendant_ids:
-                descendant_ids.add(child_id)
-                descendant_ids.update(self._get_all_descendant_ids(child_id))
-        return descendant_ids
-
     def load_possible_parents(self):
         """載入所有可作為父級的地區列表。"""
         try:
-            query = self.session.query(Region)
-            if self.is_editing():
-                # 建立一個禁止成為父級的ID列表
-                excluded_ids = {self._id}  # 排除自己
-                descendant_ids = self._get_all_descendant_ids(self._id)
-                excluded_ids.update(descendant_ids)
-
-                query = query.filter(Region.id.notin_(excluded_ids))
-
-            parents = query.order_by(Region.name).all()
+            region_id_to_exclude = self._id if self.is_editing() else None
+            parents = self.region_repo.get_possible_parents(region_id_to_exclude)
             self.parents_loaded.emit(parents)
         except Exception as e:
             logger.error(f"Error loading parent regions: {e}")
-            # 注意：這裡的錯誤處理也有問題，請見下一點
-            self.parents_loaded.emit([])  # 發送一個空列表，而不是錯誤字串
-            self.load_failed.emit(
-                f"載入父級地區時發生錯誤: {e}"
-            )  # 使用另一個信號來傳遞錯誤訊息
+            self.parents_loaded.emit([])
+            self.load_failed.emit(f"載入父級地區時發生錯誤: {e}")

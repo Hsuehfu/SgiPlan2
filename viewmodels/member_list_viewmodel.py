@@ -1,16 +1,17 @@
 from PySide6.QtCore import QObject, Signal, Qt
-from models.member_model import Member
-from models.region_model import Region
-from sqlalchemy.orm import joinedload
+from repositories.member_repository import MemberRepository
+from repositories.region_repository import RegionRepository
 
 class MemberListViewModel(QObject):
     items_loaded = Signal(list)
     regions_loaded = Signal(list)
-    members_count_changed = Signal(int) # Add this signal
+    members_count_changed = Signal(int)
 
     def __init__(self, db_session, parent=None):
         super().__init__(parent)
         self.session = db_session
+        self.member_repo = MemberRepository(db_session)
+        self.region_repo = RegionRepository(db_session)
         self.current_search_term = None
         self.current_region_id = None
         self.current_sort_column = None
@@ -18,7 +19,6 @@ class MemberListViewModel(QObject):
 
     def load_members(self, search_term=None, region_id=None, sort_column=None, sort_order=None):
         try:
-            # Update current filter/sort parameters
             if search_term is not None:
                 self.current_search_term = search_term
             if region_id is not None:
@@ -28,61 +28,34 @@ class MemberListViewModel(QObject):
             if sort_order is not None:
                 self.current_sort_order = sort_order
 
-            query = self.session.query(Member).options(joinedload(Member.region))
-
-            # Apply search filter
-            if self.current_search_term:
-                query = query.filter(Member.name.ilike(f"%{self.current_search_term}%"))
-
-            # Apply region filter
-            if self.current_region_id and self.current_region_id != -1:
-                query = query.filter(Member.region_id == self.current_region_id)
-
-            # Apply sorting
-            if self.current_sort_column is not None:
-                if self.current_sort_column == 0: # Name column
-                    if self.current_sort_order == Qt.AscendingOrder:
-                        query = query.order_by(Member.name.asc())
-                    else:
-                        query = query.order_by(Member.name.desc())
-                elif self.current_sort_column == 1: # Phone Number column
-                    if self.current_sort_order == Qt.AscendingOrder:
-                        query = query.order_by(Member.phone_number.asc())
-                    else:
-                        query = query.order_by(Member.phone_number.desc())
-                elif self.current_sort_column == 2: # Is Schedulable column
-                    if self.current_sort_order == Qt.AscendingOrder:
-                        query = query.order_by(Member.is_schedulable.asc())
-                    else:
-                        query = query.order_by(Member.is_schedulable.desc())
-                elif self.current_sort_column == 3: # Region column
-                    # Need to join with Region table for sorting by region name
-                    query = query.join(Region)
-                    if self.current_sort_order == Qt.AscendingOrder:
-                        query = query.order_by(Region.name.asc())
-                    else:
-                        query = query.order_by(Region.name.desc())
-
-            members = query.all()
+            members = self.member_repo.search(
+                search_term=self.current_search_term,
+                region_id=self.current_region_id,
+                sort_column=self.current_sort_column,
+                sort_order=self.current_sort_order
+            )
             self.items_loaded.emit(members)
-            self.members_count_changed.emit(len(members)) # Emit the count
+            self.members_count_changed.emit(len(members))
         except Exception as e:
             print(f"Error loading members: {e}")
 
     def load_regions(self):
         try:
-            regions = self.session.query(Region).all()
+            regions = self.region_repo.get_all()
             self.regions_loaded.emit(regions)
         except Exception as e:
             print(f"Error loading regions: {e}")
 
     def delete_member(self, member_id):
         try:
-            member = self.session.query(Member).filter_by(id=member_id).first()
-            if member:
-                self.session.delete(member)
+            if self.member_repo.delete_by_id(member_id):
                 self.session.commit()
-                self.load_members(search_term=self.current_search_term, region_id=self.current_region_id, sort_column=self.current_sort_column, sort_order=self.current_sort_order)
+                self.load_members(
+                    search_term=self.current_search_term, 
+                    region_id=self.current_region_id, 
+                    sort_column=self.current_sort_column, 
+                    sort_order=self.current_sort_order
+                )
         except Exception as e:
             print(f"Error deleting member: {e}")
             self.session.rollback()
